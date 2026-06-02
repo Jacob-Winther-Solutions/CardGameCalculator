@@ -1,0 +1,166 @@
+@page "/hypergeometric"
+@using Plotly.Blazor.Traces.BarLib
+
+<PageTitle>Hypergeometric Calculator - Card Game Calculator</PageTitle>
+
+<MudText Typo="Typo.h4" GutterBottom="true">Hypergeometric Calculator</MudText>
+<MudText Typo="Typo.body1" Class="mb-6" Color="Color.Secondary">
+    Calculate the probability of drawing specific cards from your deck.
+</MudText>
+
+<MudGrid>
+    <MudItem xs="12" md="4">
+        <MudCard Elevation="2">
+            <MudCardHeader>
+                <CardHeaderContent>
+                    <MudText Typo="Typo.h6">Parameters</MudText>
+                </CardHeaderContent>
+            </MudCardHeader>
+            <MudCardContent>
+                <MudNumericField @bind-Value="_deckSize" Label="Deck Size" Variant="Variant.Outlined"
+                    Min="1" Max="999" HelperText="Total cards in your deck" Class="mb-4" />
+                <MudNumericField @bind-Value="_copiesInDeck" Label="Copies in Deck" Variant="Variant.Outlined"
+                    Min="0" Max="@_deckSize" HelperText="Copies of the card in your deck" Class="mb-4" />
+                <MudNumericField @bind-Value="_cardsDrawn" Label="Cards Drawn" Variant="Variant.Outlined"
+                    Min="1" Max="@_deckSize" HelperText="Cards drawn (e.g. opening hand size)" Class="mb-4" />
+                <MudNumericField @bind-Value="_desiredCopies" Label="Desired Copies" Variant="Variant.Outlined"
+                    Min="0" Max="@Math.Min(_copiesInDeck, _cardsDrawn)"
+                    HelperText="How many copies you want to see" />
+            </MudCardContent>
+            <MudCardActions>
+                <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="Calculate" FullWidth="true"
+                    StartIcon="@Icons.Material.Filled.Calculate">
+                    Calculate
+                </MudButton>
+            </MudCardActions>
+        </MudCard>
+
+        @if (_calculated)
+        {
+            <MudCard Elevation="2" Class="mt-4">
+                <MudCardHeader>
+                    <CardHeaderContent>
+                        <MudText Typo="Typo.h6">Results</MudText>
+                    </CardHeaderContent>
+                </MudCardHeader>
+                <MudCardContent Class="pa-0">
+                    <MudList T="string" Dense="true">
+                        <MudListItem>
+                            <MudText Typo="Typo.caption" Color="Color.Secondary">Exactly @_desiredCopies @CopiesLabel(_desiredCopies)</MudText>
+                            <MudText Typo="Typo.h5" Color="Color.Primary">@_exactProb.ToString("P2")</MudText>
+                        </MudListItem>
+                        <MudDivider />
+                        <MudListItem>
+                            <MudText Typo="Typo.caption" Color="Color.Secondary">At least @_desiredCopies @CopiesLabel(_desiredCopies)</MudText>
+                            <MudText Typo="Typo.h5" Color="Color.Primary">@_atLeastProb.ToString("P2")</MudText>
+                        </MudListItem>
+                        <MudDivider />
+                        <MudListItem>
+                            <MudText Typo="Typo.caption" Color="Color.Secondary">At most @_desiredCopies @CopiesLabel(_desiredCopies)</MudText>
+                            <MudText Typo="Typo.h5" Color="Color.Primary">@_atMostProb.ToString("P2")</MudText>
+                        </MudListItem>
+                    </MudList>
+                </MudCardContent>
+            </MudCard>
+        }
+    </MudItem>
+
+    <MudItem xs="12" md="8">
+        <MudCard Elevation="2">
+            <MudCardHeader>
+                <CardHeaderContent>
+                    <MudText Typo="Typo.h6">Probability Distribution</MudText>
+                    @if (_calculated)
+                    {
+                        <MudText Typo="Typo.body2" Color="Color.Secondary">
+                            Drawing from @_deckSize cards (@_copiesInDeck copies), @_cardsDrawn drawn
+                        </MudText>
+                    }
+                </CardHeaderContent>
+            </MudCardHeader>
+            <MudCardContent>
+                @if (_calculated)
+                {
+                    <PlotlyChart Config="_chartConfig" Layout="_chartLayout" Data="_chartData" />
+                }
+                else
+                {
+                    <MudPaper Class="d-flex align-center justify-center" Style="height:300px;" Elevation="0">
+                        <MudText Color="Color.Secondary">Press Calculate to see the distribution.</MudText>
+                    </MudPaper>
+                }
+            </MudCardContent>
+        </MudCard>
+    </MudItem>
+</MudGrid>
+
+@code {
+    private int _deckSize = 60;
+    private int _copiesInDeck = 4;
+    private int _cardsDrawn = 7;
+    private int _desiredCopies = 1;
+
+    private bool _calculated;
+    private double _exactProb;
+    private double _atLeastProb;
+    private double _atMostProb;
+
+    private Config _chartConfig = new() { Responsive = true };
+    private Plotly.Blazor.Layout _chartLayout = new();
+    private IList<ITrace> _chartData = new List<ITrace>();
+
+    private void Calculate()
+    {
+        _copiesInDeck = Math.Clamp(_copiesInDeck, 0, _deckSize);
+        _cardsDrawn = Math.Clamp(_cardsDrawn, 1, _deckSize);
+        _desiredCopies = Math.Clamp(_desiredCopies, 0, Math.Min(_copiesInDeck, _cardsDrawn));
+
+        _exactProb = ProbabilityCalculator.Hypergeometric(_deckSize, _copiesInDeck, _cardsDrawn, _desiredCopies);
+        _atLeastProb = ProbabilityCalculator.HypergeometricAtLeast(_deckSize, _copiesInDeck, _cardsDrawn, _desiredCopies);
+        _atMostProb = ProbabilityCalculator.HypergeometricAtMost(_deckSize, _copiesInDeck, _cardsDrawn, _desiredCopies);
+
+        var pmf = ProbabilityCalculator.HypergeometricPmf(_deckSize, _copiesInDeck, _cardsDrawn);
+        var colors = pmf.Select((_, i) => i == _desiredCopies ? "#594AE2" : "#A0A0D0").ToList();
+
+        _chartLayout = new Plotly.Blazor.Layout
+        {
+            ShowLegend = false,
+            Margin = new Plotly.Blazor.LayoutLib.Margin { L = 60, R = 20, T = 20, B = 50 },
+            PaperBgColor = "transparent",
+            PlotBgColor = "transparent",
+            XAxis = new List<XAxis>
+            {
+                new XAxis
+                {
+                    Title = new Plotly.Blazor.LayoutLib.XAxisLib.Title { Text = "Copies Drawn" },
+                    TickMode = Plotly.Blazor.LayoutLib.XAxisLib.TickModeEnum.Linear,
+                    DTick = 1
+                }
+            },
+            YAxis = new List<YAxis>
+            {
+                new YAxis
+                {
+                    Title = new Plotly.Blazor.LayoutLib.YAxisLib.Title { Text = "Probability (%)" },
+                    Range = new List<object> { 0, 100 },
+                    TickSuffix = "%"
+                }
+            }
+        };
+
+        _chartData = new List<ITrace>
+        {
+            new Bar
+            {
+                X = Enumerable.Range(0, pmf.Length).Select(i => (object)i).ToList(),
+                Y = pmf.Select(p => (object)Math.Round(p * 100, 2)).ToList(),
+                Marker = new Marker { Color = colors.Select(c => (object)c).ToList() },
+                HoverTemplate = "%{x} copies: %{y:.2f}%<extra></extra>"
+            }
+        };
+
+        _calculated = true;
+    }
+
+    private static string CopiesLabel(int n) => n == 1 ? "copy" : "copies";
+}

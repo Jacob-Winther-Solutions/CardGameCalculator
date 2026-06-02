@@ -1,0 +1,35 @@
+@page "/"
+
+<PageTitle>Card Game Calculator</PageTitle>
+
+<MudText Typo="Typo.h3" GutterBottom="true">Card Game Calculator</MudText>
+<MudText Typo="Typo.subtitle1" Class="mb-8" Color="Color.Secondary">
+    A collection of probability calculators for card games like Magic: The Gathering.
+</MudText>
+
+<MudGrid>
+    <MudItem xs="12" sm="6" md="4">
+        <MudCard Elevation="2">
+            <MudCardHeader>
+                <CardHeaderAvatar>
+                    <MudAvatar Color="Color.Primary">
+                        <MudIcon Icon="@Icons.Material.Filled.BarChart" />
+                    </MudAvatar>
+                </CardHeaderAvatar>
+                <CardHeaderContent>
+                    <MudText Typo="Typo.h6">Hypergeometric Calculator</MudText>
+                    <MudText Typo="Typo.body2" Color="Color.Secondary">Drawing specific cards from a deck</MudText>
+                </CardHeaderContent>
+            </MudCardHeader>
+            <MudCardContent>
+                <MudText Typo="Typo.body2">
+                    Calculate the probability of drawing a specific number of copies of a card
+                    in your opening hand or after a given number of draws.
+                </MudText>
+            </MudCardContent>
+            <MudCardActions>
+                <MudButton Href="/hypergeometric" Variant="Variant.Text" Color="Color.Primary">Open Calculator</MudButton>
+            </MudCardActions>
+        </MudCard>
+    </MudItem>
+</MudGrid>
