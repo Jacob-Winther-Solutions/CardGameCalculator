@@ -75,6 +75,108 @@ public static class ProbabilityCalculator
     }
 
     /// <summary>
+    /// Computes the multivariate hypergeometric PMF: the probability of drawing exactly
+    /// <paramref name="desiredCopies"/>[i] copies from each group i simultaneously in a single
+    /// draw of <paramref name="drawCount"/> cards from a deck containing multiple distinct groups.
+    /// Formula: P(X₁=k₁, ..., X_G=k_G) = [∏ C(Kᵢ, kᵢ)] * C(N - ΣKᵢ, n - Σkᵢ) / C(N, n)
+    /// The C(N - ΣKᵢ, n - Σkᵢ) term accounts for the remaining draws coming from cards
+    /// outside any defined group.
+    /// </summary>
+    /// <param name="deckSize">Total number of cards in the deck (N).</param>
+    /// <param name="groupSizes">Number of copies of each group in the deck (K₁, K₂, ..., K_G).</param>
+    /// <param name="desiredCopies">Exact number of copies to draw from each group (k₁, k₂, ..., k_G).</param>
+    /// <param name="drawCount">Total number of cards drawn (n).</param>
+    /// <returns>Probability in the range [0, 1], or 0 if any parameter is outside the valid support.</returns>
+    public static double MultivariateHypergeometric(
+        int deckSize,
+        IReadOnlyList<int> groupSizes,
+        IReadOnlyList<int> desiredCopies,
+        int drawCount)
+    {
+        if (groupSizes.Count != desiredCopies.Count) return 0;
+
+        int totalGroupCards = groupSizes.Sum();
+        int totalDesired = desiredCopies.Sum();
+
+        if (totalGroupCards > deckSize) return 0;
+        if (totalDesired > drawCount) return 0;
+
+        double denominator = BinomialCoefficient(deckSize, drawCount);
+        if (denominator == 0) return 0;
+
+        double numerator = 1.0;
+        for (int i = 0; i < groupSizes.Count; i++)
+        {
+            if (desiredCopies[i] < 0 || desiredCopies[i] > groupSizes[i]) return 0;
+            numerator *= BinomialCoefficient(groupSizes[i], desiredCopies[i]);
+        }
+
+        numerator *= BinomialCoefficient(deckSize - totalGroupCards, drawCount - totalDesired);
+
+        return numerator / denominator;
+    }
+
+    /// <summary>
+    /// Computes the probability that every group meets its minimum in a single draw of
+    /// <paramref name="drawCount"/> cards: P(X₁ >= m₁, X₂ >= m₂, ..., X_G >= m_G).
+    /// Achieved by summing the multivariate PMF over all valid draw tuples (k₁, ..., k_G)
+    /// where kᵢ ∈ [mᵢ, min(Kᵢ, n)] and Σkᵢ ≤ n. The enumeration is handled recursively
+    /// group by group, reducing the remaining draw budget at each level.
+    /// </summary>
+    /// <param name="deckSize">Total number of cards in the deck (N).</param>
+    /// <param name="groupSizes">Number of copies of each group in the deck (K₁, K₂, ..., K_G).</param>
+    /// <param name="minimumCopies">Minimum copies required from each group (m₁, m₂, ..., m_G).</param>
+    /// <param name="drawCount">Total number of cards drawn (n).</param>
+    /// <returns>Probability in the range [0, 1], or 0 if the minimums are collectively impossible to satisfy.</returns>
+    public static double MultivariateHypergeometricAtLeast(
+        int deckSize,
+        IReadOnlyList<int> groupSizes,
+        IReadOnlyList<int> minimumCopies,
+        int drawCount)
+    {
+        if (groupSizes.Count != minimumCopies.Count) return 0;
+
+        int totalGroupCards = groupSizes.Sum();
+        if (totalGroupCards > deckSize) return 0;
+        if (minimumCopies.Sum() > drawCount) return 0;
+
+        double denominator = BinomialCoefficient(deckSize, drawCount);
+        if (denominator == 0) return 0;
+
+        int nonGroupCards = deckSize - totalGroupCards;
+        double numeratorSum = SumGroupCombinations(groupSizes, minimumCopies, nonGroupCards, 0, drawCount);
+
+        return numeratorSum / denominator;
+    }
+
+    // Recursively enumerates all valid draw tuples across groups and accumulates the
+    // product of binomial coefficients for each combination.
+    // At the final group, multiplies by C(nonGroupCards, remainingDraws) to account
+    // for the draws that come from cards outside any defined group.
+    private static double SumGroupCombinations(
+        IReadOnlyList<int> groupSizes,
+        IReadOnlyList<int> minimumCopies,
+        int nonGroupCards,
+        int groupIndex,
+        int remainingDraws)
+    {
+        if (groupIndex == groupSizes.Count)
+            return BinomialCoefficient(nonGroupCards, remainingDraws);
+
+        int min = minimumCopies[groupIndex];
+        int max = Math.Min(groupSizes[groupIndex], remainingDraws);
+
+        if (min > max) return 0;
+
+        double sum = 0;
+        for (int copies = min; copies <= max; copies++)
+            sum += BinomialCoefficient(groupSizes[groupIndex], copies)
+                * SumGroupCombinations(groupSizes, minimumCopies, nonGroupCards, groupIndex + 1, remainingDraws - copies);
+
+        return sum;
+    }
+
+    /// <summary>
     /// Computes the binomial coefficient C(n, k) = n! / (k! * (n - k)!), i.e. the number of
     /// ways to choose <paramref name="subsetSize"/> items from a set of <paramref name="setSize"/>
     /// items without regard to order.

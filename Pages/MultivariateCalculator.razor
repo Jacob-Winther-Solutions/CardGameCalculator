@@ -1,0 +1,188 @@
+@page "/multivariate"
+
+<PageTitle>Combo Stability Calculator - Card Game Calculator</PageTitle>
+
+<MudText Typo="Typo.h4" GutterBottom="true">Combo Stability Calculator</MudText>
+<MudText Typo="Typo.body1" Class="mb-6" Color="Color.Secondary">
+    Calculate the probability of drawing the required pieces of a multi-part combination.
+    Uses the multivariate hypergeometric distribution — all groups draw from the same deck,
+    so their probabilities are not independent.
+</MudText>
+
+<MudGrid>
+    <MudItem xs="12" md="4">
+        <MudCard Elevation="2">
+            <MudCardHeader>
+                <CardHeaderContent>
+                    <MudText Typo="Typo.h6">Parameters</MudText>
+                </CardHeaderContent>
+            </MudCardHeader>
+            <MudCardContent>
+                <MudGrid Spacing="2" Class="mb-5">
+                    <MudItem xs="6">
+                        <MudNumericField @bind-Value="_deckSize" Label="Deck Size" Variant="Variant.Outlined"
+                            Min="1" Max="999" HelperText="Total cards (N)" />
+                    </MudItem>
+                    <MudItem xs="6">
+                        <MudNumericField @bind-Value="_drawCount" Label="Cards Drawn" Variant="Variant.Outlined"
+                            Min="1" Max="@_deckSize" HelperText="Hand size (n)" />
+                    </MudItem>
+                </MudGrid>
+
+                <MudText Typo="Typo.subtitle2" Class="mb-2">Card Groups</MudText>
+
+                @foreach (var group in _groups)
+                {
+                    <MudGrid Spacing="1" Class="mb-1">
+                        <MudItem xs="5">
+                            <MudTextField @bind-Value="group.Name" Label="Name"
+                                Variant="Variant.Outlined" Margin="Margin.Dense" />
+                        </MudItem>
+                        <MudItem xs="3">
+                            <MudNumericField @bind-Value="group.CopiesInDeck" Label="In Deck"
+                                Variant="Variant.Outlined" Margin="Margin.Dense" Min="0" Max="@_deckSize" />
+                        </MudItem>
+                        <MudItem xs="3">
+                            <MudNumericField @bind-Value="group.DesiredCopies" Label="Want"
+                                Variant="Variant.Outlined" Margin="Margin.Dense" Min="0" Max="@group.CopiesInDeck" />
+                        </MudItem>
+                        <MudItem xs="1" Class="d-flex align-center justify-center">
+                            <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="Color.Error"
+                                Size="Size.Small" OnClick="@(() => RemoveGroup(group))" />
+                        </MudItem>
+                    </MudGrid>
+                }
+
+                <MudButton Variant="Variant.Text" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add"
+                    OnClick="AddGroup" Class="mt-2">
+                    Add Group
+                </MudButton>
+
+                @if (_validationError is not null)
+                {
+                    <MudAlert Severity="Severity.Warning" Class="mt-3" Dense="true">@_validationError</MudAlert>
+                }
+            </MudCardContent>
+            <MudCardActions>
+                <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="Calculate" FullWidth="true"
+                    StartIcon="@Icons.Material.Filled.Calculate">
+                    Calculate
+                </MudButton>
+            </MudCardActions>
+        </MudCard>
+
+        @if (_calculated)
+        {
+            <MudCard Elevation="2" Class="mt-4">
+                <MudCardHeader>
+                    <CardHeaderContent>
+                        <MudText Typo="Typo.h6">Results — @_drawCount cards drawn</MudText>
+                    </CardHeaderContent>
+                </MudCardHeader>
+                <MudCardContent Class="pa-0">
+                    <MudList T="string" Dense="true">
+                        <MudListItem>
+                            <MudText Typo="Typo.caption" Color="Color.Secondary">At least minimum of each group</MudText>
+                            <MudText Typo="Typo.h5" Color="Color.Primary">@_atLeastProb.ToString("P2")</MudText>
+                        </MudListItem>
+                        <MudDivider />
+                        <MudListItem>
+                            <MudText Typo="Typo.caption" Color="Color.Secondary">Exactly the desired of each group</MudText>
+                            <MudText Typo="Typo.h5" Color="Color.Primary">@_exactProb.ToString("P2")</MudText>
+                        </MudListItem>
+                    </MudList>
+                </MudCardContent>
+            </MudCard>
+        }
+    </MudItem>
+
+    <MudItem xs="12" md="8">
+        <MudCard Elevation="2">
+            <MudCardHeader>
+                <CardHeaderContent>
+                    <MudText Typo="Typo.h6">Probability vs Cards Drawn</MudText>
+                    <MudText Typo="Typo.body2" Color="Color.Secondary">
+                        Chance of drawing at least the minimum from every group simultaneously
+                    </MudText>
+                </CardHeaderContent>
+            </MudCardHeader>
+            <MudCardContent>
+                @if (_calculated)
+                {
+                    <PlotlyChart Config="_chartConfig" Layout="_chartLayout" Data="_chartData" @ref="_chart" />
+                }
+                else
+                {
+                    <MudPaper Class="d-flex align-center justify-center" Style="height:350px;" Elevation="0">
+                        <MudText Color="Color.Secondary">Press Calculate to see the probability curve.</MudText>
+                    </MudPaper>
+                }
+            </MudCardContent>
+        </MudCard>
+
+        <MudCard Elevation="2" Class="mt-4">
+            <MudCardHeader>
+                <CardHeaderContent>
+                    <MudText Typo="Typo.h6">Simulation</MudText>
+                    <MudText Typo="Typo.body2" Color="Color.Secondary">
+                        Empirical verification via Monte Carlo sampling
+                    </MudText>
+                </CardHeaderContent>
+            </MudCardHeader>
+            <MudCardContent>
+                <MudGrid Spacing="2" Class="mb-2" AlignItems="AlignItems.Center">
+                    <MudItem xs="7">
+                        <MudNumericField @bind-Value="_simulationIterations" Label="Iterations"
+                            Variant="Variant.Outlined" Min="1000" Max="1000000" Step="10000" />
+                    </MudItem>
+                    <MudItem xs="5">
+                        <MudNumericField @bind-Value="_confidenceLevel" Label="Confidence %"
+                            Variant="Variant.Outlined" Min="50" Max="99" />
+                    </MudItem>
+                    <MudItem xs="12">
+                        <MudButton Variant="Variant.Filled" Color="Color.Secondary" OnClick="RunSimulation"
+                            StartIcon="@Icons.Material.Filled.PlayArrow"
+                            Disabled="!_calculated || _simulationRunning">
+                            Run
+                        </MudButton>
+                    </MudItem>
+                </MudGrid>
+
+                @if (_simulationResult is not null)
+                {
+                    double delta = _simulationResult.Probability - _atLeastProb;
+                    string deltaSign = delta >= 0 ? "+" : "";
+
+                    <MudGrid Spacing="2" Class="mt-2">
+                        <MudItem xs="12" sm="4">
+                            <MudText Typo="Typo.caption" Color="Color.Secondary">Empirical Probability</MudText>
+                            <MudText Typo="Typo.h5">@_simulationResult.Probability.ToString("P2")</MudText>
+                        </MudItem>
+                        <MudItem xs="12" sm="5">
+                            <MudText Typo="Typo.caption" Color="Color.Secondary">@(_simulationResult.ConfidenceLevel.ToString("P0")) Confidence Interval</MudText>
+                            <MudText Typo="Typo.body1">
+                                @_simulationResult.ConfidenceIntervalLow.ToString("P2") — @_simulationResult.ConfidenceIntervalHigh.ToString("P2")
+                            </MudText>
+                        </MudItem>
+                        <MudItem xs="12" sm="3">
+                            <MudText Typo="Typo.caption" Color="Color.Secondary">Delta vs Analytical</MudText>
+                            <MudText Typo="Typo.body1"
+                                Color="@(Math.Abs(delta) < 0.005 ? Color.Success : Color.Warning)">
+                                @($"{deltaSign}{delta:P2}")
+                            </MudText>
+                        </MudItem>
+                    </MudGrid>
+                    <MudText Typo="Typo.caption" Color="Color.Secondary" Class="mt-1">
+                        @_simulationResult.Successes.ToString("N0") successes in @_simulationResult.Iterations.ToString("N0") iterations
+                    </MudText>
+                }
+                else
+                {
+                    <MudText Typo="Typo.body2" Color="Color.Secondary">
+                        @(_calculated ? "Ready to run." : "Run the analytical calculation first.")
+                    </MudText>
+                }
+            </MudCardContent>
+        </MudCard>
+    </MudItem>
+</MudGrid>
