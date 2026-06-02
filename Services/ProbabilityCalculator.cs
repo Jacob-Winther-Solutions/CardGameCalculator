@@ -3,51 +3,95 @@ namespace CardGameCalculator.Services;
 public static class ProbabilityCalculator
 {
     /// <summary>
-    /// Hypergeometric PMF: probability of drawing exactly k successes.
-    /// N = population size (deck), K = successes in population (copies in deck),
-    /// n = sample size (cards drawn), k = observed successes (copies drawn).
+    /// Computes the hypergeometric probability mass function (PMF): the probability of drawing
+    /// exactly <paramref name="desiredCopies"/> copies of a card in a single draw of
+    /// <paramref name="drawCount"/> cards from a deck.
+    /// Formula: P(X = k) = C(K, k) * C(N - K, n - k) / C(N, n)
     /// </summary>
-    public static double Hypergeometric(int N, int K, int n, int k)
+    /// <param name="deckSize">Total number of cards in the deck (N).</param>
+    /// <param name="copiesInDeck">Number of copies of the target card in the deck (K).</param>
+    /// <param name="drawCount">Number of cards drawn (n).</param>
+    /// <param name="desiredCopies">Exact number of target copies to draw (k).</param>
+    /// <returns>Probability in the range [0, 1], or 0 if the parameters are outside the valid support.</returns>
+    public static double Hypergeometric(int deckSize, int copiesInDeck, int drawCount, int desiredCopies)
     {
-        if (k < Math.Max(0, n + K - N) || k > Math.Min(K, n))
+        if (desiredCopies < Math.Max(0, drawCount + copiesInDeck - deckSize) || desiredCopies > Math.Min(copiesInDeck, drawCount))
             return 0.0;
-        return BinomialCoefficient(K, k) * BinomialCoefficient(N - K, n - k) / BinomialCoefficient(N, n);
+        return BinomialCoefficient(copiesInDeck, desiredCopies)
+            * BinomialCoefficient(deckSize - copiesInDeck, drawCount - desiredCopies)
+            / BinomialCoefficient(deckSize, drawCount);
     }
 
-    public static double[] HypergeometricPmf(int N, int K, int n)
+    /// <summary>
+    /// Computes the full hypergeometric PMF over all valid values of drawn copies,
+    /// i.e. P(X = 0), P(X = 1), ..., P(X = min(K, n)).
+    /// The returned array is indexed by the number of copies drawn, so index i holds P(X = i).
+    /// </summary>
+    /// <param name="deckSize">Total number of cards in the deck (N).</param>
+    /// <param name="copiesInDeck">Number of copies of the target card in the deck (K).</param>
+    /// <param name="drawCount">Number of cards drawn (n).</param>
+    /// <returns>Array of probabilities of length min(K, n) + 1, summing to 1.</returns>
+    public static double[] HypergeometricPmf(int deckSize, int copiesInDeck, int drawCount)
     {
-        int maxK = Math.Min(K, n);
-        var pmf = new double[maxK + 1];
-        for (int k = 0; k <= maxK; k++)
-            pmf[k] = Hypergeometric(N, K, n, k);
+        int maxDrawable = Math.Min(copiesInDeck, drawCount);
+        var pmf = new double[maxDrawable + 1];
+        for (int copies = 0; copies <= maxDrawable; copies++)
+            pmf[copies] = Hypergeometric(deckSize, copiesInDeck, drawCount, copies);
         return pmf;
     }
 
-    public static double HypergeometricAtLeast(int N, int K, int n, int k)
+    /// <summary>
+    /// Computes the probability of drawing <em>at least</em> <paramref name="desiredCopies"/>
+    /// copies of the target card: P(X >= k) = sum of P(X = i) for i from k to min(K, n).
+    /// </summary>
+    /// <param name="deckSize">Total number of cards in the deck (N).</param>
+    /// <param name="copiesInDeck">Number of copies of the target card in the deck (K).</param>
+    /// <param name="drawCount">Number of cards drawn (n).</param>
+    /// <param name="desiredCopies">Minimum number of target copies to draw (k).</param>
+    /// <returns>Cumulative probability P(X >= k) in the range [0, 1].</returns>
+    public static double HypergeometricAtLeast(int deckSize, int copiesInDeck, int drawCount, int desiredCopies)
     {
         double sum = 0;
-        for (int i = k; i <= Math.Min(K, n); i++)
-            sum += Hypergeometric(N, K, n, i);
+        for (int copies = desiredCopies; copies <= Math.Min(copiesInDeck, drawCount); copies++)
+            sum += Hypergeometric(deckSize, copiesInDeck, drawCount, copies);
         return sum;
     }
 
-    public static double HypergeometricAtMost(int N, int K, int n, int k)
+    /// <summary>
+    /// Computes the probability of drawing <em>at most</em> <paramref name="desiredCopies"/>
+    /// copies of the target card: P(X <= k) = sum of P(X = i) for i from 0 to k.
+    /// </summary>
+    /// <param name="deckSize">Total number of cards in the deck (N).</param>
+    /// <param name="copiesInDeck">Number of copies of the target card in the deck (K).</param>
+    /// <param name="drawCount">Number of cards drawn (n).</param>
+    /// <param name="desiredCopies">Maximum number of target copies to draw (k).</param>
+    /// <returns>Cumulative probability P(X <= k) in the range [0, 1].</returns>
+    public static double HypergeometricAtMost(int deckSize, int copiesInDeck, int drawCount, int desiredCopies)
     {
         double sum = 0;
-        for (int i = 0; i <= k; i++)
-            sum += Hypergeometric(N, K, n, i);
+        for (int copies = 0; copies <= desiredCopies; copies++)
+            sum += Hypergeometric(deckSize, copiesInDeck, drawCount, copies);
         return sum;
     }
 
-    private static double BinomialCoefficient(int n, int k)
+    /// <summary>
+    /// Computes the binomial coefficient C(n, k) = n! / (k! * (n - k)!), i.e. the number of
+    /// ways to choose <paramref name="subsetSize"/> items from a set of <paramref name="setSize"/>
+    /// items without regard to order.
+    /// Uses an iterative multiplicative formula to avoid factorial overflow.
+    /// </summary>
+    /// <param name="setSize">Total number of items to choose from (n).</param>
+    /// <param name="subsetSize">Number of items to choose (k).</param>
+    /// <returns>C(n, k) as a double, or 0 if the parameters are outside the valid range.</returns>
+    private static double BinomialCoefficient(int setSize, int subsetSize)
     {
-        if (k < 0 || k > n) return 0;
-        if (k == 0 || k == n) return 1;
-        k = Math.Min(k, n - k);
+        if (subsetSize < 0 || subsetSize > setSize) return 0;
+        if (subsetSize == 0 || subsetSize == setSize) return 1;
+        subsetSize = Math.Min(subsetSize, setSize - subsetSize);
         double result = 1;
-        for (int i = 0; i < k; i++)
+        for (int i = 0; i < subsetSize; i++)
         {
-            result *= (n - i);
+            result *= (setSize - i);
             result /= (i + 1);
         }
         return result;
