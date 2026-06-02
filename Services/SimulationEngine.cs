@@ -50,6 +50,111 @@ public static class SimulationEngine
         return new SimulationResult(probability, low, high, confidenceLevel, successes, iterations);
     }
 
+    /// <summary>
+    /// Runs a Monte Carlo simulation modelling the London Mulligan rule and optional per-turn
+    /// looting effects. Returns the cumulative probability of having all group minimums assembled
+    /// from the opening hand (turn 0) through each subsequent turn up to <paramref name="maxTurn"/>.
+    ///
+    /// Mulligan strategy: keep if all minimums are met; otherwise mulligan up to
+    /// <paramref name="maxMulligans"/> times. If the maximum is reached, keep regardless.
+    /// Bottoming and discard strategy: remove non-group cards first, then cards from the group
+    /// with the most excess above its minimum. This models optimal play and gives an upper bound
+    /// on the true probability.
+    /// </summary>
+    /// <param name="deckSize">Total number of cards in the deck (N).</param>
+    /// <param name="groupSizes">Number of copies of each group in the deck (K₁, K₂, ..., K_G).</param>
+    /// <param name="minimumCopies">Minimum copies required from each group (m₁, m₂, ..., m_G).</param>
+    /// <param name="maxMulligans">Maximum number of times the player will mulligan (0 = keep always).</param>
+    /// <param name="lootingEffects">Per-turn draw-discard effects applied during the turn sequence.</param>
+    /// <param name="maxTurn">Number of turns to simulate after the opening hand.</param>
+    /// <param name="iterations">Number of simulation iterations to run.</param>
+    /// <param name="confidenceLevel">Desired confidence level for the Wilson interval, e.g. 0.95.</param>
+    /// <returns>
+    /// A <see cref="MulliganSimulationResult"/> with cumulative probabilities and Wilson confidence
+    /// intervals indexed by turn number, where index 0 is the opening hand post-mulligans.
+    /// </returns>
+    public static MulliganSimulationResult RunWithMulligans(
+        int deckSize,
+        IReadOnlyList<int> groupSizes,
+        IReadOnlyList<int> minimumCopies,
+        int maxMulligans,
+        IReadOnlyList<LootingEffect> lootingEffects,
+        int maxTurn,
+        int iterations,
+        double confidenceLevel = 0.95)
+    {
+        var rng = new Random();
+        int totalTurns = maxTurn + 1;
+        var successCounts = new int[totalTurns];
+
+        var templateDeck = BuildDeck(deckSize, groupSizes);
+        var deck = (int?[])templateDeck.Clone();
+        int maxHandSize = 7 + maxTurn + lootingEffects.Sum(l => l.DrawCount) + 4;
+        var hand = new List<int?>(maxHandSize);
+
+        for (int iter = 0; iter < iterations; iter++)
+        {
+            Array.Copy(templateDeck, deck, deckSize);
+            Shuffle(deck, rng);
+
+            int mulligansTaken = 0;
+
+            while (true)
+            {
+                hand.Clear();
+                for (int j = 0; j < Math.Min(7, deck.Length); j++)
+                    hand.Add(deck[j]);
+
+                if (HandMeetsMinimums(hand, minimumCopies) || mulligansTaken >= maxMulligans)
+                    break;
+
+                mulligansTaken++;
+                Shuffle(deck, rng);
+            }
+
+            for (int b = 0; b < mulligansTaken; b++)
+                hand.RemoveAt(FindLeastUseful(hand, minimumCopies));
+
+            int deckPosition = Math.Min(7, deck.Length);
+            int assembledTurn = HandMeetsMinimums(hand, minimumCopies) ? 0 : -1;
+
+            for (int turn = 1; turn <= maxTurn && assembledTurn < 0; turn++)
+            {
+                if (deckPosition < deck.Length)
+                    hand.Add(deck[deckPosition++]);
+
+                foreach (var loot in lootingEffects)
+                {
+                    if (loot.Turn != turn) continue;
+                    for (int d = 0; d < loot.DrawCount && deckPosition < deck.Length; d++)
+                        hand.Add(deck[deckPosition++]);
+                    for (int d = 0; d < loot.DiscardCount && hand.Count > 0; d++)
+                        hand.RemoveAt(FindLeastUseful(hand, minimumCopies));
+                }
+
+                if (HandMeetsMinimums(hand, minimumCopies))
+                    assembledTurn = turn;
+            }
+
+            if (assembledTurn >= 0)
+                for (int t = assembledTurn; t < totalTurns; t++)
+                    successCounts[t]++;
+        }
+
+        double z = NormalQuantile(1.0 - (1.0 - confidenceLevel) / 2.0);
+        var probabilities = new double[totalTurns];
+        var ciLow = new double[totalTurns];
+        var ciHigh = new double[totalTurns];
+
+        for (int t = 0; t < totalTurns; t++)
+        {
+            probabilities[t] = (double)successCounts[t] / iterations;
+            (ciLow[t], ciHigh[t]) = WilsonConfidenceInterval(successCounts[t], iterations, z);
+        }
+
+        return new MulliganSimulationResult(probabilities, ciLow, ciHigh, confidenceLevel, iterations);
+    }
+
     private static int?[] BuildDeck(int deckSize, IReadOnlyList<int> groupSizes)
     {
         var deck = new int?[deckSize];
@@ -81,6 +186,43 @@ public static class SimulationEngine
             if (drawn[i] < minimumCopies[i])
                 return false;
         return true;
+    }
+
+    private static bool HandMeetsMinimums(List<int?> hand, IReadOnlyList<int> minimumCopies)
+    {
+        Span<int> counts = stackalloc int[minimumCopies.Count];
+        foreach (var card in hand)
+            if (card is int g) counts[g]++;
+        for (int i = 0; i < minimumCopies.Count; i++)
+            if (counts[i] < minimumCopies[i]) return false;
+        return true;
+    }
+
+    /// <summary>
+    /// Returns the index of the least useful card in the hand for the purpose of bottoming or
+    /// discarding. Prioritises non-group cards (null), then cards from the group with the most
+    /// copies above its minimum. Falls back to the last card if all groups are exactly at minimum.
+    /// </summary>
+    private static int FindLeastUseful(List<int?> hand, IReadOnlyList<int> minimumCopies)
+    {
+        int nullIdx = hand.FindLastIndex(c => c is null);
+        if (nullIdx >= 0) return nullIdx;
+
+        Span<int> counts = stackalloc int[minimumCopies.Count];
+        foreach (var card in hand)
+            if (card is int g) counts[g]++;
+
+        int maxExcess = 0;
+        int targetGroup = -1;
+        for (int g = 0; g < counts.Length; g++)
+        {
+            int excess = counts[g] - minimumCopies[g];
+            if (excess > maxExcess) { maxExcess = excess; targetGroup = g; }
+        }
+
+        return targetGroup >= 0
+            ? hand.FindLastIndex(c => c == targetGroup)
+            : hand.Count - 1;
     }
 
     /// <summary>

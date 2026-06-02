@@ -1,0 +1,167 @@
+@page "/mulligan-looting"
+
+<PageTitle>Mulligan & Looting Calculator - Card Game Calculator</PageTitle>
+
+<MudText Typo="Typo.h4" GutterBottom="true">Mulligan & Looting Calculator</MudText>
+<MudText Typo="Typo.body1" Class="mb-6" Color="Color.Secondary">
+    Simulate the London Mulligan rule and turn-by-turn looting effects to model how quickly
+    a multi-part combination is assembled in practice.
+</MudText>
+
+<MudGrid>
+    <MudItem xs="12" md="4">
+        <MudCard Elevation="2">
+            <MudCardHeader>
+                <CardHeaderContent>
+                    <MudText Typo="Typo.h6">Parameters</MudText>
+                </CardHeaderContent>
+            </MudCardHeader>
+            <MudCardContent>
+                <MudGrid Spacing="2" Class="mb-5">
+                    <MudItem xs="6">
+                        <MudNumericField @bind-Value="_deckSize" Label="Deck Size" Variant="Variant.Outlined"
+                            Min="7" Max="999" HelperText="Total cards (N)" />
+                    </MudItem>
+                    <MudItem xs="6">
+                        <MudNumericField @bind-Value="_maxMulligans" Label="Max Mulligans" Variant="Variant.Outlined"
+                            Min="0" Max="6" HelperText="London Mulligan" />
+                    </MudItem>
+                </MudGrid>
+
+                <MudText Typo="Typo.subtitle2" Class="mb-2">Card Groups</MudText>
+
+                @foreach (var group in _groups)
+                {
+                    <MudGrid Spacing="1" Class="mb-1">
+                        <MudItem xs="5">
+                            <MudTextField @bind-Value="group.Name" Label="Name"
+                                Variant="Variant.Outlined" Margin="Margin.Dense" />
+                        </MudItem>
+                        <MudItem xs="3">
+                            <MudNumericField @bind-Value="group.CopiesInDeck" Label="In Deck"
+                                Variant="Variant.Outlined" Margin="Margin.Dense" Min="0" Max="@_deckSize" />
+                        </MudItem>
+                        <MudItem xs="3">
+                            <MudNumericField @bind-Value="group.DesiredCopies" Label="Want"
+                                Variant="Variant.Outlined" Margin="Margin.Dense" Min="0" Max="@group.CopiesInDeck" />
+                        </MudItem>
+                        <MudItem xs="1" Class="d-flex align-center justify-center">
+                            <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="Color.Error"
+                                Size="Size.Small" OnClick="@(() => RemoveGroup(group))" />
+                        </MudItem>
+                    </MudGrid>
+                }
+
+                <MudButton Variant="Variant.Text" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add"
+                    OnClick="AddGroup" Class="mt-2 mb-5">
+                    Add Group
+                </MudButton>
+
+                <MudDivider Class="mb-4" />
+                <MudText Typo="Typo.subtitle2" Class="mb-3">Simulation Settings</MudText>
+
+                <MudGrid Spacing="2">
+                    <MudItem xs="6">
+                        <MudNumericField @bind-Value="_maxTurn" Label="Max Turn" Variant="Variant.Outlined"
+                            Min="1" Max="20" HelperText="Turns to simulate" />
+                    </MudItem>
+                    <MudItem xs="6">
+                        <MudNumericField @bind-Value="_iterations" Label="Iterations" Variant="Variant.Outlined"
+                            Min="1000" Max="1000000" Step="10000" />
+                    </MudItem>
+                    <MudItem xs="6">
+                        <MudNumericField @bind-Value="_confidenceLevel" Label="Confidence %" Variant="Variant.Outlined"
+                            Min="50" Max="99" />
+                    </MudItem>
+                </MudGrid>
+
+                @if (_validationError is not null)
+                {
+                    <MudAlert Severity="Severity.Warning" Class="mt-3" Dense="true">@_validationError</MudAlert>
+                }
+            </MudCardContent>
+            <MudCardActions Class="flex-column align-start px-4 pb-4">
+                <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="RunSimulation"
+                    FullWidth="true" StartIcon="@Icons.Material.Filled.PlayArrow"
+                    Disabled="_simulationRunning">
+                    Run Simulation
+                </MudButton>
+                <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mt-2"
+                    Style="@(_simulationRunning ? "visibility: visible;" : "visibility: hidden;")">
+                    Simulating&hellip; this may take a few seconds.
+                </MudText>
+            </MudCardActions>
+        </MudCard>
+    </MudItem>
+
+    <MudItem xs="12" md="8">
+        <MudCard Elevation="2">
+            <MudCardHeader>
+                <CardHeaderContent>
+                    <MudText Typo="Typo.h6">Looting Effects</MudText>
+                    <MudText Typo="Typo.body2" Color="Color.Secondary">
+                        Draw-discard effects applied on the specified turn
+                    </MudText>
+                </CardHeaderContent>
+            </MudCardHeader>
+            <MudCardContent>
+                @if (_lootingEffects.Count == 0)
+                {
+                    <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mb-2">
+                        No looting effects defined. The simulation will run without card selection.
+                    </MudText>
+                }
+                else
+                {
+                    @foreach (var effect in _lootingEffects)
+                    {
+                        <MudGrid Spacing="1" Class="mb-1">
+                            <MudItem xs="4">
+                                <MudTextField @bind-Value="effect.Name" Label="Name"
+                                    Variant="Variant.Outlined" Margin="Margin.Dense" />
+                            </MudItem>
+                            <MudItem xs="2">
+                                <MudNumericField @bind-Value="effect.Turn" Label="Turn"
+                                    Variant="Variant.Outlined" Margin="Margin.Dense" Min="1" Max="@_maxTurn" />
+                            </MudItem>
+                            <MudItem xs="2">
+                                <MudNumericField @bind-Value="effect.DrawCount" Label="Draw"
+                                    Variant="Variant.Outlined" Margin="Margin.Dense" Min="0" Max="10" />
+                            </MudItem>
+                            <MudItem xs="2">
+                                <MudNumericField @bind-Value="effect.DiscardCount" Label="Discard"
+                                    Variant="Variant.Outlined" Margin="Margin.Dense" Min="0" Max="10" />
+                            </MudItem>
+                            <MudItem xs="2" Class="d-flex align-center justify-center">
+                                <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="Color.Error"
+                                    Size="Size.Small" OnClick="@(() => RemoveLootingEffect(effect))" />
+                            </MudItem>
+                        </MudGrid>
+                    }
+                }
+                <MudButton Variant="Variant.Text" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add"
+                    OnClick="AddLootingEffect" Class="mt-2">
+                    Add Effect
+                </MudButton>
+            </MudCardContent>
+        </MudCard>
+
+        @if (_simulated)
+        {
+            <MudCard Elevation="2" Class="mt-4">
+                <MudCardHeader>
+                    <CardHeaderContent>
+                        <MudText Typo="Typo.h6">Probability of Assembly by Turn</MudText>
+                        <MudText Typo="Typo.body2" Color="Color.Secondary">
+                            Cumulative — @_iterations.ToString("N0") iterations,
+                            @_confidenceLevel% confidence, up to @_maxMulligans mulligans
+                        </MudText>
+                    </CardHeaderContent>
+                </MudCardHeader>
+                <MudCardContent>
+                    <PlotlyChart Config="_chartConfig" Layout="_chartLayout" Data="_chartData" @ref="_chart" />
+                </MudCardContent>
+            </MudCard>
+        }
+    </MudItem>
+</MudGrid>
