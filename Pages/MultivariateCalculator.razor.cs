@@ -28,7 +28,7 @@ public partial class MultivariateCalculator
     private int _simulationIterations = 100_000;
     private int _confidenceLevel = 95;
     private SimulationResult? _simulationResult;
-    private bool _simulationRunning; // disabled while running to prevent double-clicks
+    private bool _simulationRunning;
 
     private PlotlyChart? _chart;
     private bool _pendingChartUpdate;
@@ -87,12 +87,14 @@ public partial class MultivariateCalculator
         _pendingChartUpdate = true;
     }
 
-    private void RunSimulation()
+    private async Task RunSimulation()
     {
         if (!_calculated || _simulationRunning) return;
 
         _simulationRunning = true;
         _simulationResult = null;
+        StateHasChanged();
+        await Task.Delay(1);
 
         var groupSizes = _groups.Select(g => g.CopiesInDeck).ToList();
         var minimums   = _groups.Select(g => g.DesiredCopies).ToList();
