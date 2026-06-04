@@ -1,6 +1,7 @@
 using CardGameCalculator.Models;
 using CardGameCalculator.Services;
 using Microsoft.AspNetCore.Components;
+using Microsoft.JSInterop;
 using MudBlazor;
 using Plotly.Blazor;
 using Plotly.Blazor.LayoutLib;
@@ -12,6 +13,7 @@ namespace CardGameCalculator.Pages;
 public partial class MultivariateCalculator
 {
     [Inject] private FormatService FormatService { get; set; } = default!;
+    [Inject] private IJSRuntime JS { get; set; } = default!;
 
     private int _deckSize = 60;
     private int _drawCount = 7;
@@ -24,19 +26,14 @@ public partial class MultivariateCalculator
         _drawCount = format.HandSize;
     }
 
-    private List<CardGroup> _groups = new()
-    {
-        new CardGroup { Name = "Reanimation Targets", CopiesInDeck = 8, DesiredCopies = 1 },
-        new CardGroup { Name = "Reanimation Spells",  CopiesInDeck = 8, DesiredCopies = 1 },
-        new CardGroup { Name = "Graveyard Feeders",   CopiesInDeck = 12, DesiredCopies = 1 }
-    };
+    private List<CardGroup> _groups = new();
 
     private bool _calculated;
     private string? _validationError;
     private double _exactProb;
     private double _atLeastProb;
 
-    private int _simulationIterations = 100_000;
+    private int _simulationIterations = 1_000;
     private int _confidenceLevel = 95;
     private SimulationResult? _simulationResult;
     private bool _simulationRunning;
@@ -50,6 +47,9 @@ public partial class MultivariateCalculator
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
+        if (firstRender)
+            await JS.InvokeVoidAsync("renderMath");
+
         if (_pendingChartUpdate && _chart is not null)
         {
             _pendingChartUpdate = false;

@@ -1,6 +1,7 @@
 using CardGameCalculator.Models;
 using CardGameCalculator.Services;
 using Microsoft.AspNetCore.Components;
+using Microsoft.JSInterop;
 using MudBlazor;
 using Plotly.Blazor;
 using Plotly.Blazor.LayoutLib;
@@ -12,30 +13,25 @@ namespace CardGameCalculator.Pages;
 public partial class MulliganLootingCalculator
 {
     [Inject] private FormatService FormatService { get; set; } = default!;
+    [Inject] private IJSRuntime JS { get; set; } = default!;
 
     private int _deckSize = 60;
     private int _maxMulligans = 3;
+    private bool _freeFirstMulligan = false;
 
     protected override async Task OnInitializedAsync()
     {
         await FormatService.Initialize();
-        _deckSize = FormatService.Current.DeckSize;
+        var format = FormatService.Current;
+        _deckSize = format.DeckSize;
+        _freeFirstMulligan = format.FreeFirstMulligan;
     }
 
-    private List<CardGroup> _groups = new()
-    {
-        new CardGroup { Name = "Reanimation Targets", CopiesInDeck = 8, DesiredCopies = 1 },
-        new CardGroup { Name = "Reanimation Spells",  CopiesInDeck = 8, DesiredCopies = 1 },
-        new CardGroup { Name = "Graveyard Feeders",   CopiesInDeck = 12, DesiredCopies = 1 }
-    };
-
-    private List<LootingEffect> _lootingEffects = new()
-    {
-        new LootingEffect { Name = "Faithless Looting", Turn = 1, DrawCount = 2, DiscardCount = 2 }
-    };
+    private List<CardGroup> _groups = new();
+    private List<LootingEffect> _lootingEffects = new();
 
     private int _maxTurn = 5;
-    private int _iterations = 100_000;
+    private int _iterations = 1_000;
     private int _confidenceLevel = 95;
 
     private bool _simulated;
@@ -54,6 +50,9 @@ public partial class MulliganLootingCalculator
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
+        if (firstRender)
+            await JS.InvokeVoidAsync("renderMath");
+
         if (_pendingChartUpdate && _chart is not null)
         {
             _pendingChartUpdate = false;
@@ -63,7 +62,9 @@ public partial class MulliganLootingCalculator
 
     private void ResetToFormat()
     {
-        _deckSize = FormatService.Current.DeckSize;
+        var format = FormatService.Current;
+        _deckSize = format.DeckSize;
+        _freeFirstMulligan = format.FreeFirstMulligan;
         _simulated = false;
     }
 
@@ -105,12 +106,12 @@ public partial class MulliganLootingCalculator
 
         _baseResult = SimulationEngine.RunWithMulligans(
             _deckSize, groupSizes, minimums, _maxMulligans,
-            Array.Empty<LootingEffect>(), _maxTurn, _iterations, confidenceLevel);
+            Array.Empty<LootingEffect>(), _maxTurn, _iterations, confidenceLevel, _freeFirstMulligan);
 
         _lootingResult = _lootingEffects.Count > 0
             ? SimulationEngine.RunWithMulligans(
                 _deckSize, groupSizes, minimums, _maxMulligans,
-                _lootingEffects, _maxTurn, _iterations, confidenceLevel)
+                _lootingEffects, _maxTurn, _iterations, confidenceLevel, _freeFirstMulligan)
             : null;
 
         BuildChart();
@@ -156,7 +157,7 @@ public partial class MulliganLootingCalculator
                 X = xLabels,
                 Y = _baseResult.CumulativeProbabilityByTurn.Select(p => (object)Math.Round(p * 100, 2)).ToList(),
                 Mode = ModeFlag.Lines | ModeFlag.Markers,
-                Name = _lootingResult is not null ? "Base (no lootings)" : "Assembled by turn",
+                Name = _lootingResult is not null ? "Base (no effects)" : "Assembled by turn",
                 Line = new Line { Color = "#594AE2", Width = 2 },
                 ShowLegend = true
             });
@@ -169,7 +170,7 @@ public partial class MulliganLootingCalculator
                 X = xLabels,
                 Y = _lootingResult.CumulativeProbabilityByTurn.Select(p => (object)Math.Round(p * 100, 2)).ToList(),
                 Mode = ModeFlag.Lines | ModeFlag.Markers,
-                Name = "With lootings",
+                Name = "With card selection",
                 Line = new Line { Color = "#FF9800", Width = 2 },
                 ShowLegend = true
             });

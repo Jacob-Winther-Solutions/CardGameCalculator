@@ -15,19 +15,19 @@ Single Blazor WebAssembly project (net10.0) targeting Azure Static Web Apps. No 
 **Pages** — four calculators, each split into `.razor` (markup) and `.razor.cs` (code-behind):
 - `HypergeometricCalculator` (`/hypergeometric`) — single-card draw probability using exact hypergeometric math; includes the Optimal Instances Advisor (inverse hypergeometric: finds minimum instances in deck to meet a target probability)
 - `MultivariateCalculator` (`/multivariate`) — joint probability across multiple card groups, with Monte Carlo probability curve
-- `MulliganLootingCalculator` (`/mulligan-looting`) — London Mulligan simulation with per-turn looting effects
+- `MulliganLootingCalculator` (`/mulligan-looting`) — London Mulligan simulation with per-turn card selection effects; supports free first mulligan toggle (auto-applied from format preset)
 - `ManaBaseAnalyzer` (`/mana-base`) — turn-by-turn land-drop probability table and chart; models cumulative draw count as `handSize + turn` and computes P(≥N lands) via hypergeometric CDF
 
 **Services:**
 - `ProbabilityCalculator` — static class; closed-form math (hypergeometric PMF/CDF, multivariate hypergeometric, binomial coefficients)
-- `SimulationEngine` — static class; Monte Carlo simulations (single-draw and full mulligan/looting game sequence), Fisher-Yates shuffle, Wilson confidence intervals
+- `SimulationEngine` — static class; Monte Carlo simulations (single-draw and full mulligan/card-selection game sequence), Fisher-Yates shuffle, Wilson confidence intervals; `RunWithMulligans` accepts `freeFirstMulligan` to model the Commander free-first-mulligan rule
 - `FormatService` — singleton (DI); holds the active `FormatPreset`, persists selection to `localStorage` via JS interop, exposes a `Changed` event; all calculator pages inject it and call `Initialize()` in `OnInitializedAsync`
 
 **Models:**
 - `CardGroup` — a named group of cards defined by `CopiesInDeck` and `DesiredCopies`; shared across Multivariate and Mulligan pages
 - `LootingEffect` — a per-turn draw/discard effect (`Turn`, `DrawCount`, `DiscardCount`)
 - `SimulationResult` / `MulliganSimulationResult` — records holding Monte Carlo output including Wilson CI bounds
-- `FormatPreset` — record with `Name`, `DeckSize`, `HandSize`, `MaxCopiesPerCard`, `DefaultLandCount`; three built-in presets: 60-card Traditional, 100-card Singleton (99 playable cards), 40-card Limited
+- `FormatPreset` — record with `Name`, `DeckSize`, `HandSize`, `MaxCopiesPerCard`, `DefaultLandCount`, `FreeFirstMulligan`; three built-in presets: 60-card Traditional (false), 100-card Singleton — 99 playable cards (true), 40-card Limited (false)
 - `AdvisorRow` — internal record used by `HypergeometricCalculator` to hold a single row of the Optimal Instances Advisor results (`Instances`, `Probability`, `MeetsTarget`)
 
 # Claude Code Rules
@@ -64,15 +64,7 @@ Single Blazor WebAssembly project (net10.0) targeting Azure Static Web Apps. No 
 
 ### ~~Global Format Type Picker~~ — COMPLETE
 
-### Full Page Descriptions (Theory + How-To-Use)
-
-Each calculator page should contain two documentation sections visible to the user:
-
-1. **Theory / Math explanation** — describes the statistical model behind the calculator, the formula used, and any assumptions made. The goal is that a mathematically curious user can "check the math" independently.
-2. **How to use** — step-by-step guide for filling in the inputs, with at least one concrete worked example (e.g., "I want to know the probability of drawing my 4 Sol Rings in my first 7 cards of a 100-card Commander deck…").
-
-- **UI:** Collapsible `MudExpansionPanel` sections beneath the calculator, or a tabbed layout (Calculator / Theory / How To Use). Keep them out of the way for returning users but discoverable for new ones.
-- **Scope:** Applies to all existing pages: Hypergeometric, Multivariate, Mulligan & Looting, and Mana Base Analyzer.
+### ~~Full Page Descriptions (Theory + How-To-Use)~~ — COMPLETE
 
 ### Scry / Surveil / Ponder Effects
 

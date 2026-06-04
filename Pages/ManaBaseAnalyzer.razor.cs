@@ -1,6 +1,7 @@
 using CardGameCalculator.Models;
 using CardGameCalculator.Services;
 using Microsoft.AspNetCore.Components;
+using Microsoft.JSInterop;
 using Plotly.Blazor;
 using Plotly.Blazor.LayoutLib;
 using Plotly.Blazor.LayoutLib.XAxisLib;
@@ -12,6 +13,7 @@ namespace CardGameCalculator.Pages;
 public partial class ManaBaseAnalyzer
 {
     [Inject] private FormatService FormatService { get; set; } = default!;
+    [Inject] private IJSRuntime JS { get; set; } = default!;
 
     private const int MaxThreshold = 5;
 
@@ -42,6 +44,9 @@ public partial class ManaBaseAnalyzer
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
+        if (firstRender)
+            await JS.InvokeVoidAsync("renderMath");
+
         if (_pendingChartUpdate && _chart is not null)
         {
             _pendingChartUpdate = false;

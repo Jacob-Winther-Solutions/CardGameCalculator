@@ -81,7 +81,8 @@ public static class SimulationEngine
         IReadOnlyList<LootingEffect> lootingEffects,
         int maxTurn,
         int iterations,
-        double confidenceLevel = 0.95)
+        double confidenceLevel = 0.95,
+        bool freeFirstMulligan = false)
     {
         var rng = new Random();
         int totalTurns = maxTurn + 1;
@@ -112,7 +113,8 @@ public static class SimulationEngine
                 Shuffle(deck, rng);
             }
 
-            for (int b = 0; b < mulligansTaken; b++)
+            int cardsToBottom = freeFirstMulligan ? Math.Max(mulligansTaken - 1, 0) : mulligansTaken;
+            for (int b = 0; b < cardsToBottom; b++)
                 hand.RemoveAt(FindLeastUseful(hand, minimumCopies));
 
             int deckPosition = Math.Min(7, deck.Length);

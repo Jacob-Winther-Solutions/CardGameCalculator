@@ -1,6 +1,7 @@
 using CardGameCalculator.Models;
 using CardGameCalculator.Services;
 using Microsoft.AspNetCore.Components;
+using Microsoft.JSInterop;
 using MudBlazor;
 using Plotly.Blazor;
 using Plotly.Blazor.LayoutLib;
@@ -13,11 +14,18 @@ namespace CardGameCalculator.Pages;
 public partial class HypergeometricCalculator
 {
     [Inject] private FormatService FormatService { get; set; } = default!;
+    [Inject] private IJSRuntime JS { get; set; } = default!;
 
     private int _deckSize = 60;
     private int _copiesInDeck = 4;
     private int _cardsDrawn = 7;
     private int _desiredCopies = 1;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+            await JS.InvokeVoidAsync("renderMath");
+    }
 
     protected override async Task OnInitializedAsync()
     {

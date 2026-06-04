@@ -4,9 +4,100 @@
 
 <MudText Typo="Typo.h4" GutterBottom="true">Mulligan & Looting Calculator</MudText>
 <MudText Typo="Typo.body1" Class="mb-6" Color="Color.Secondary">
-    Simulate the London Mulligan rule and turn-by-turn looting effects to model how quickly
+    Simulate the London Mulligan rule and turn-by-turn card selection effects to model how quickly
     a multi-part combination is assembled in practice.
 </MudText>
+
+<MudExpansionPanels Class="mb-6" MultiExpansion="true">
+    <MudExpansionPanel Text="Theory & Math">
+        <MudText Typo="Typo.h6" Class="mb-2">Monte Carlo Simulation</MudText>
+        <MudText Class="mb-4">
+            Results are produced by repeated random simulation rather than closed-form mathematics.
+            Each iteration plays one complete game sequence — shuffle, mulligan procedure, then turn-by-turn
+            draws and card selection effects — and records whether all combo groups are assembled by the target
+            turn. The reported probability is the fraction of successful iterations.
+        </MudText>
+
+        <MudText Typo="Typo.h6" Class="mb-2">London Mulligan Rule</MudText>
+        <MudText Class="mb-3">
+            On the \(k\)-th mulligan (\(k \geq 1\)), the player draws 7 cards, then places exactly \(k\)
+            of them on the bottom of the library face-down, keeping a hand of \(7 - k\) cards.
+        </MudText>
+        <div class="my-3">
+            $$ \text{Hand size after } k \text{ mulligans} = 7 - k $$
+        </div>
+        <MudText Class="mb-3">
+            Some multiplayer formats (such as Commander) grant a <em>free first mulligan</em> — the first
+            mulligan does not reduce hand size. When enabled, the formula becomes:
+        </MudText>
+        <div class="my-3">
+            $$ \text{Hand size (free first)} = 7 - \max(k - 1,\, 0) $$
+        </div>
+        <MudText Class="mb-4">
+            The simulator takes a mulligan whenever the current hand does not contain at least one card
+            from every required group, up to the configured maximum mulligan count.
+        </MudText>
+
+        <MudText Typo="Typo.h6" Class="mb-2">Card Selection Effects</MudText>
+        <MudText Class="mb-4">
+            A card selection effect on turn \(T\) draws \(d\) cards then discards \(d\) cards. The simulator uses
+            a <em>greedy keep policy</em>: when choosing which cards to discard, it retains cards that
+            contribute to unfulfilled combo groups and discards excess copies and off-group cards first.
+            This models optimal play rather than random discard.
+        </MudText>
+
+        <MudText Typo="Typo.h6" Class="mb-2">Wilson Score Confidence Interval</MudText>
+        <MudText Class="mb-3">
+            Each reported probability is accompanied by a confidence interval computed using the
+            Wilson score method, which remains accurate even when the probability is near 0% or 100%.
+        </MudText>
+        <div class="my-3">
+            $$ \text{CI} = \frac{\hat{p} + \dfrac{z^2}{2n} \pm z\,\sqrt{\dfrac{\hat{p}(1-\hat{p})}{n} + \dfrac{z^2}{4n^2}}}{1 + \dfrac{z^2}{n}} $$
+        </div>
+        <MudText>
+            where \(\hat{p}\) is the empirical probability, \(n\) is the number of iterations, and \(z\) is
+            the standard normal quantile for the chosen confidence level (e.g. \(z = 1.96\) for 95%).
+        </MudText>
+    </MudExpansionPanel>
+
+    <MudExpansionPanel Text="How to Use">
+        <MudText Class="mb-3">
+            Define the deck size, combo groups, and any card selection effects, then press
+            <strong>Run Simulation</strong>. When card selection effects are present, the chart shows two lines —
+            the base curve (no effects) and the card selection curve — letting you directly measure the
+            improvement from each effect.
+        </MudText>
+
+        <MudAlert Severity="Severity.Info" Dense="true" Class="mb-4">
+            For Commander games, enable the <strong>Free first mulligan</strong> checkbox before running.
+            Press <strong>Reset to chosen format</strong> with 100-card Singleton selected to apply this
+            setting automatically alongside the correct deck size.
+        </MudAlert>
+
+        <MudText Typo="Typo.subtitle2" Class="mb-2">Example — Comparing Base vs. Card Selection</MudText>
+        <MudText Class="mb-2">
+            Your 60-card combo deck has three groups: two 8-card groups and one 12-card group,
+            each requiring at least 1 copy. You play Faithless Looting on turn 1 (draw 2, discard 2).
+            How much does it improve your odds of having the combo assembled by turn 3?
+        </MudText>
+        <ol style="padding-left: 1.5rem; margin-bottom: 0.5rem;">
+            <li>Deck Size: <strong>60</strong>, Max Mulligans: <strong>3</strong></li>
+            <li>Configure three groups matching your combo pieces</li>
+            <li>Add card selection effect: Name <strong>Faithless Looting</strong>, Turn <strong>1</strong>, Draw <strong>2</strong>, Discard <strong>2</strong></li>
+            <li>Max Turn: <strong>5</strong>, Iterations: <strong>1 000</strong></li>
+        </ol>
+        <MudText Class="mb-4">
+            Press <strong>Run Simulation</strong>. The orange <em>With card selection</em> line shows the
+            improvement over the blue <em>Base</em> line — the gap at each turn quantifies how much
+            Faithless Looting helps your consistency.
+        </MudText>
+
+        <MudAlert Severity="Severity.Info" Dense="true">
+            Increasing the iteration count narrows the confidence interval at the cost of longer run time.
+            1 000 iterations is suitable for quick estimates; 10 000+ gives a margin of error below ±1.5% at 95% confidence.
+        </MudAlert>
+    </MudExpansionPanel>
+</MudExpansionPanels>
 
 <MudGrid>
     <MudItem xs="12" md="4">
@@ -25,6 +116,9 @@
                     <MudItem xs="6">
                         <MudNumericField @bind-Value="_maxMulligans" Label="Max Mulligans" Variant="Variant.Outlined"
                             Min="0" Max="6" HelperText="London Mulligan" />
+                    </MudItem>
+                    <MudItem xs="12">
+                        <MudCheckBox @bind-Value="_freeFirstMulligan" Label="Free first mulligan" Color="Color.Primary" />
                     </MudItem>
                 </MudGrid>
 
@@ -86,10 +180,12 @@
                     Disabled="_simulationRunning" Class="mb-2">
                     Run Simulation
                 </MudButton>
-                <MudButton Variant="Variant.Outlined" OnClick="ResetToFormat" FullWidth="true"
-                    StartIcon="@Icons.Material.Filled.RestartAlt">
-                    Reset to chosen format
-                </MudButton>
+                <MudTooltip Text="Resets Deck Size and the Free First Mulligan setting to the defaults of the currently selected format. Clears simulation results.">
+                    <MudButton Variant="Variant.Outlined" OnClick="ResetToFormat" FullWidth="true"
+                        StartIcon="@Icons.Material.Filled.RestartAlt">
+                        Reset to chosen format
+                    </MudButton>
+                </MudTooltip>
                 <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mt-2"
                     Style="@(_simulationRunning ? "visibility: visible;" : "visibility: hidden;")">
                     Simulating&hellip; this may take a few seconds.
@@ -102,7 +198,7 @@
         <MudCard Elevation="2">
             <MudCardHeader>
                 <CardHeaderContent>
-                    <MudText Typo="Typo.h6">Looting Effects</MudText>
+                    <MudText Typo="Typo.h6">Card Selection Effects</MudText>
                     <MudText Typo="Typo.body2" Color="Color.Secondary">
                         Draw-discard effects applied on the specified turn
                     </MudText>
@@ -112,7 +208,7 @@
                 @if (_lootingEffects.Count == 0)
                 {
                     <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mb-2">
-                        No looting effects defined. The simulation will run without card selection.
+                        No card selection effects defined. The simulation will run without card selection.
                     </MudText>
                 }
                 else

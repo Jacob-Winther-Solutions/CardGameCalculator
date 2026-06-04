@@ -7,6 +7,109 @@
     Calculate the probability of drawing specific cards from your deck.
 </MudText>
 
+<MudExpansionPanels Class="mb-6" MultiExpansion="true">
+    <MudExpansionPanel Text="Theory & Math">
+        <MudText Class="mb-3">
+            The <strong>hypergeometric distribution</strong> models the number of target cards \(X\) drawn
+            when \(n\) cards are drawn <em>without replacement</em> from a deck of \(N\) cards containing
+            \(K\) copies of the target card.
+        </MudText>
+
+        <MudText Typo="Typo.subtitle2" Class="mb-1">Probability of exactly k copies</MudText>
+        <div class="my-3">
+            $$ P(X = k) = \frac{\binom{K}{k}\,\binom{N-K}{n-k}}{\binom{N}{n}} $$
+        </div>
+        <MudText Class="mb-4">
+            where \(\binom{a}{b} = \frac{a!}{b!\,(a-b)!}\) is the binomial coefficient — the number of
+            ways to choose \(b\) items from \(a\) items without regard to order.
+        </MudText>
+
+        <MudText Typo="Typo.subtitle2" Class="mb-1">Cumulative forms</MudText>
+        <div class="my-3">
+            $$ P(X \geq k) = \sum_{i=k}^{\min(K,\,n)} P(X = i) \qquad \text{(at least } k \text{ copies)} $$
+        </div>
+        <div class="my-3">
+            $$ P(X \leq k) = \sum_{i=0}^{k} P(X = i) \qquad \text{(at most } k \text{ copies)} $$
+        </div>
+
+        <MudText Typo="Typo.subtitle2" Class="mt-4 mb-2">Parameters</MudText>
+        <MudText>\(N\) — total cards in the deck</MudText>
+        <MudText>\(K\) — copies of the target card in the deck</MudText>
+        <MudText>\(n\) — cards drawn (e.g. opening hand size)</MudText>
+        <MudText Class="mb-4">\(k\) — exact number of copies drawn</MudText>
+
+        <MudAlert Severity="Severity.Info" Dense="true" Class="mb-6">
+            Because cards are drawn <strong>without replacement</strong>, each draw changes the composition of the
+            remaining deck — successive draws are not independent. The hypergeometric distribution models this
+            dependency exactly, unlike the binomial approximation which incorrectly assumes independence.
+        </MudAlert>
+
+        <MudDivider Class="mb-4" />
+        <MudText Typo="Typo.h6" Class="mb-2">Optimal Instances Advisor</MudText>
+        <MudText Class="mb-3">
+            The Advisor inverts the hypergeometric question. Instead of computing \(P(X \geq k)\) for a
+            fixed deck count \(K\), it finds the <em>minimum</em> \(K^*\) needed to meet a target
+            probability \(p^*\):
+        </MudText>
+        <div class="my-3">
+            $$ K^* = \min\!\left\{\, K \in \{1,\ldots,N\} \;:\; P(X \geq k) \geq p^* \,\right\} $$
+        </div>
+        <MudText>
+            <em>Instances</em> refers to all cards that fulfil the same role — they need not be identical cards.
+            In a singleton format, a "removal package" of ten different spells still contributes ten instances
+            to this calculation.
+        </MudText>
+    </MudExpansionPanel>
+
+    <MudExpansionPanel Text="How to Use">
+        <MudText Typo="Typo.h6" Class="mb-2">Hypergeometric Calculator</MudText>
+        <MudText Class="mb-3">
+            Set the four parameters describing your deck scenario and press <strong>Calculate</strong>.
+            The bar chart shows the full probability distribution; the highlighted bar corresponds to
+            your chosen desired copies.
+        </MudText>
+
+        <MudText Typo="Typo.subtitle2" Class="mb-2">Example — Lightning Bolt in Standard</MudText>
+        <MudText Class="mb-2">
+            You run 4 copies of Lightning Bolt in a 60-card deck. What is the probability of drawing
+            at least one copy in your opening hand of 7?
+        </MudText>
+        <ol style="padding-left: 1.5rem; margin-bottom: 0.5rem;">
+            <li>Deck Size: <strong>60</strong></li>
+            <li>Copies in Deck: <strong>4</strong></li>
+            <li>Cards Drawn: <strong>7</strong></li>
+            <li>Desired Copies: <strong>1</strong></li>
+        </ol>
+        <MudText Class="mb-4">
+            The <em>At Least 1</em> result gives your answer — approximately <strong>39.95%</strong>.
+        </MudText>
+
+        <MudDivider Class="mb-4" />
+        <MudText Typo="Typo.h6" Class="mb-2">Optimal Instances Advisor</MudText>
+        <MudText Class="mb-3">
+            Enter a target probability and the minimum number of instances you want in hand, then press
+            <strong>Find Optimal Instances</strong>. The table shows the probability for each instance
+            count, with the recommended minimum highlighted in green.
+        </MudText>
+
+        <MudText Typo="Typo.subtitle2" Class="mb-2">Example — Card Draw in Commander</MudText>
+        <MudText Class="mb-2">
+            You are building a Commander deck (99 cards). You want at least one piece of card draw in
+            your opening hand of 7 at least <strong>80%</strong> of the time. How many card-draw spells
+            do you need?
+        </MudText>
+        <ol style="padding-left: 1.5rem; margin-bottom: 0.5rem;">
+            <li>Select the <strong>100-card Singleton</strong> format — Deck Size becomes 99, Cards Drawn becomes 7.</li>
+            <li>Target Probability: <strong>80%</strong></li>
+            <li>Desired in Hand: <strong>1</strong></li>
+        </ol>
+        <MudText>
+            Press <strong>Find Optimal Instances</strong>. The Recommended row shows the minimum count needed —
+            roughly <strong>10 instances</strong> for an 80% target in a 7-card hand from a 99-card deck.
+        </MudText>
+    </MudExpansionPanel>
+</MudExpansionPanels>
+
 <MudGrid>
     <MudItem xs="12" md="4">
         <MudCard Elevation="2">
@@ -31,10 +134,12 @@
                     StartIcon="@Icons.Material.Filled.Calculate" Class="mb-2">
                     Calculate
                 </MudButton>
-                <MudButton Variant="Variant.Outlined" OnClick="ResetToFormat" FullWidth="true"
-                    StartIcon="@Icons.Material.Filled.RestartAlt">
-                    Reset to chosen format
-                </MudButton>
+                <MudTooltip Text="Resets Deck Size, Cards Drawn, and Copies in Deck to the defaults of the currently selected format. Clears the current results.">
+                    <MudButton Variant="Variant.Outlined" OnClick="ResetToFormat" FullWidth="true"
+                        StartIcon="@Icons.Material.Filled.RestartAlt">
+                        Reset to chosen format
+                    </MudButton>
+                </MudTooltip>
             </MudCardActions>
         </MudCard>
 

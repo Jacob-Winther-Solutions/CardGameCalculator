@@ -7,6 +7,67 @@
     Calculate the probability of hitting your land drops on curve.
 </MudText>
 
+<MudExpansionPanels Class="mb-6" MultiExpansion="true">
+    <MudExpansionPanel Text="Theory & Math">
+        <MudText Class="mb-3">
+            The Mana Base Analyzer models land draws using the hypergeometric distribution.
+            By turn \(T\), a player has seen \(h + T\) cards in total — an opening hand of \(h\) cards
+            plus one draw per turn. The probability of having drawn at least \(L\) lands by turn \(T\) is:
+        </MudText>
+        <div class="my-3">
+            $$ P(X \geq L) = \sum_{i=L}^{\min(\ell,\; h+T)} \frac{\binom{\ell}{i}\,\binom{N-\ell}{h+T-i}}{\binom{N}{h+T}} $$
+        </div>
+
+        <MudText Typo="Typo.subtitle2" Class="mt-2 mb-1">Miss land drop</MudText>
+        <MudText Class="mb-3">
+            A player <em>misses their \(T\)-th land drop</em> when they have seen fewer than \(T\) lands
+            after \(h + T\) cards — that is, when \(P(X \geq T)\) is not met:
+        </MudText>
+        <div class="my-3">
+            $$ P(\text{miss land drop at turn } T) = 1 - P(X \geq T) $$
+        </div>
+
+        <MudText Typo="Typo.subtitle2" Class="mt-4 mb-2">Parameters</MudText>
+        <MudText>\(N\) — deck size</MudText>
+        <MudText>\(\ell\) — number of lands in the deck</MudText>
+        <MudText>\(h\) — opening hand size</MudText>
+        <MudText>\(L\) — land threshold (at least \(L\) lands)</MudText>
+        <MudText Class="mb-4">\(T\) — turn number</MudText>
+
+        <MudAlert Severity="Severity.Warning" Dense="true">
+            This model assumes <strong>no mulligans</strong>, <strong>no fetchlands</strong>, and that every
+            land produces mana without restriction. Real games diverge from these assumptions. For a
+            simulation-based approach that accounts for mulligans and card selection, use the
+            Mulligan &amp; Looting Calculator.
+        </MudAlert>
+    </MudExpansionPanel>
+
+    <MudExpansionPanel Text="How to Use">
+        <MudText Class="mb-3">
+            Set the deck parameters and press <strong>Calculate</strong>. The chart plots the probability
+            of having seen at least 1–5 lands at each turn; the table gives the exact figures alongside
+            the miss-land-drop probability for each turn.
+        </MudText>
+
+        <MudText Typo="Typo.subtitle2" Class="mb-2">Example — Hitting the 4th Land Drop in Standard</MudText>
+        <MudText Class="mb-2">
+            Your 60-card Standard deck runs 24 lands. What is the probability of having at least 4 lands
+            available by turn 4, assuming you keep your opening hand of 7?
+        </MudText>
+        <ol style="padding-left: 1.5rem; margin-bottom: 0.5rem;">
+            <li>Deck Size: <strong>60</strong></li>
+            <li>Lands in Deck: <strong>24</strong></li>
+            <li>Opening Hand Size: <strong>7</strong></li>
+            <li>Turns to Show: <strong>5</strong> (or more)</li>
+        </ol>
+        <MudText>
+            Press <strong>Calculate</strong>, then look at the <em>Turn 4</em> row and the
+            <em>≥4 lands</em> column — this is your probability of making the 4th land drop on time.
+            The <em>Miss land drop</em> column in the same row shows the complementary risk.
+        </MudText>
+    </MudExpansionPanel>
+</MudExpansionPanels>
+
 <MudGrid>
     <MudItem xs="12" md="4">
         <MudCard Elevation="2">
@@ -30,10 +91,12 @@
                     StartIcon="@Icons.Material.Filled.Calculate" Class="mb-2">
                     Calculate
                 </MudButton>
-                <MudButton Variant="Variant.Outlined" OnClick="ResetToFormat" FullWidth="true"
-                    StartIcon="@Icons.Material.Filled.RestartAlt">
-                    Reset to chosen format
-                </MudButton>
+                <MudTooltip Text="Resets Deck Size, Hand Size, and Lands in Deck to format defaults — 24 lands for 60-card Traditional, 37 for 100-card Singleton, and 17 for 40-card Limited. Clears the current results.">
+                    <MudButton Variant="Variant.Outlined" OnClick="ResetToFormat" FullWidth="true"
+                        StartIcon="@Icons.Material.Filled.RestartAlt">
+                        Reset to chosen format
+                    </MudButton>
+                </MudTooltip>
             </MudCardActions>
         </MudCard>
     </MudItem>

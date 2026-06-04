@@ -9,6 +9,94 @@
     so their probabilities are not independent.
 </MudText>
 
+<MudExpansionPanels Class="mb-6" MultiExpansion="true">
+    <MudExpansionPanel Text="Theory & Math">
+        <MudText Class="mb-3">
+            The <strong>multivariate hypergeometric distribution</strong> extends the single-group model
+            to \(G\) distinct card groups drawn simultaneously from the same deck. All groups compete for
+            the same \(n\) draws, so their probabilities are <em>correlated</em> — drawing more of one
+            group leaves fewer slots for the others.
+        </MudText>
+
+        <MudText Typo="Typo.subtitle2" Class="mb-1">Probability of drawing exactly \(k_i\) from each group</MudText>
+        <div class="my-3">
+            $$ P(X_1 = k_1, \ldots, X_G = k_G) = \frac{\displaystyle\prod_{i=1}^{G}\binom{K_i}{k_i} \cdot \binom{N - \sum_{i=1}^{G} K_i}{\;n - \sum_{i=1}^{G} k_i\;}}{\binom{N}{n}} $$
+        </div>
+        <MudText Class="mb-4">
+            The term \(\binom{N - \sum K_i}{n - \sum k_i}\) counts the ways to fill the remaining draw
+            slots from cards that belong to <em>no</em> defined group.
+        </MudText>
+
+        <MudText Typo="Typo.subtitle2" Class="mb-1">Probability that every group meets its minimum simultaneously</MudText>
+        <div class="my-3">
+            $$ P(X_1 \geq m_1, \ldots, X_G \geq m_G) = \frac{1}{\binom{N}{n}} \!\! \sum_{\substack{k_i \geq m_i \\ k_1 + \cdots + k_G \leq n}} \prod_{i=1}^{G}\binom{K_i}{k_i} \cdot \binom{N - \sum K_i}{n - \sum k_i} $$
+        </div>
+        <MudText Class="mb-4">
+            This sums all valid draw tuples \((k_1, \ldots, k_G)\) where each group meets its minimum and
+            the total does not exceed \(n\). The enumeration is performed recursively group by group,
+            which keeps computation tractable for typical combo sizes.
+        </MudText>
+
+        <MudText Typo="Typo.subtitle2" Class="mt-2 mb-2">Parameters</MudText>
+        <MudText>\(N\) — deck size</MudText>
+        <MudText>\(K_i\) — number of cards in group \(i\)</MudText>
+        <MudText>\(m_i\) — minimum copies required from group \(i\)</MudText>
+        <MudText>\(n\) — cards drawn (hand size)</MudText>
+        <MudText Class="mb-4">\(G\) — number of groups</MudText>
+
+        <MudAlert Severity="Severity.Info" Dense="true">
+            You <strong>cannot</strong> multiply individual group probabilities together to get the joint
+            probability. All groups draw from the same deck, creating a negative correlation — assembling
+            one combo piece slightly reduces the chances of finding another.
+        </MudAlert>
+    </MudExpansionPanel>
+
+    <MudExpansionPanel Text="How to Use">
+        <MudText Class="mb-3">
+            Define the deck parameters and each card group, then press <strong>Calculate</strong>.
+            The probability curve shows how the assembly chance grows with additional draws. Use
+            the Monte Carlo simulation to empirically verify the closed-form result.
+        </MudText>
+
+        <MudText Typo="Typo.subtitle2" Class="mb-2">Example — Three-Piece Combo in Standard</MudText>
+        <MudText Class="mb-2">
+            Your 60-card deck needs three combo pieces to win. You run 4 copies of each.
+            What is the probability of holding all three in your opening hand of 7?
+        </MudText>
+        <ol style="padding-left: 1.5rem; margin-bottom: 0.5rem;">
+            <li>Deck Size: <strong>60</strong>, Cards Drawn: <strong>7</strong></li>
+            <li>Group 1 — "Piece A": In Deck <strong>4</strong>, Want <strong>1</strong></li>
+            <li>Group 2 — "Piece B": In Deck <strong>4</strong>, Want <strong>1</strong></li>
+            <li>Group 3 — "Piece C": In Deck <strong>4</strong>, Want <strong>1</strong></li>
+        </ol>
+        <MudText Class="mb-4">
+            Press <strong>Calculate</strong>. The <em>At least minimum of each group</em> result is the
+            probability of opening with the full combo — approximately <strong>1.57%</strong>. The curve
+            shows how quickly this improves as you draw more cards.
+        </MudText>
+
+        <MudDivider Class="my-4" />
+
+        <MudText Typo="Typo.subtitle2" Class="mb-2">Example — Reanimator Deck in Standard</MudText>
+        <MudText Class="mb-2">
+            Your 100-card singleton reanimator deck needs three roles covered in hand: a Reanimation Target
+            (10 copies), a Reanimation Spell (12 copies), and a Self-mill Card (20 copies).
+            What is the probability of having at least one of each in your opening hand of 7?
+        </MudText>
+        <ol style="padding-left: 1.5rem; margin-bottom: 0.5rem;">
+            <li>Deck Size: <strong>100</strong>, Cards Drawn: <strong>7</strong></li>
+            <li>Group 1 — "Reanimation Targets": In Deck <strong>10</strong>, Want <strong>1</strong></li>
+            <li>Group 2 — "Reanimation Spells": In Deck <strong>12</strong>, Want <strong>1</strong></li>
+            <li>Group 3 — "Self-mill Cards": In Deck <strong>20</strong>, Want <strong>1</strong></li>
+        </ol>
+        <MudText>
+            Press <strong>Calculate</strong>. Because this deck runs far more copies of each role than the
+            strict 4-copy example above, the opening-hand probability is significantly higher — demonstrating
+            the value of redundancy in combo decks.
+        </MudText>
+    </MudExpansionPanel>
+</MudExpansionPanels>
+
 <MudGrid>
     <MudItem xs="12" md="4">
         <MudCard Elevation="2">
@@ -68,10 +156,12 @@
                     StartIcon="@Icons.Material.Filled.Calculate" Class="mb-2">
                     Calculate
                 </MudButton>
-                <MudButton Variant="Variant.Outlined" OnClick="ResetToFormat" FullWidth="true"
-                    StartIcon="@Icons.Material.Filled.RestartAlt">
-                    Reset to chosen format
-                </MudButton>
+                <MudTooltip Text="Resets Deck Size and Cards Drawn to the defaults of the currently selected format. Clears the current results.">
+                    <MudButton Variant="Variant.Outlined" OnClick="ResetToFormat" FullWidth="true"
+                        StartIcon="@Icons.Material.Filled.RestartAlt">
+                        Reset to chosen format
+                    </MudButton>
+                </MudTooltip>
             </MudCardActions>
         </MudCard>
 
