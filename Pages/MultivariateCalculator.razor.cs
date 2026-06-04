@@ -1,5 +1,6 @@
 using CardGameCalculator.Models;
 using CardGameCalculator.Services;
+using Microsoft.AspNetCore.Components;
 using MudBlazor;
 using Plotly.Blazor;
 using Plotly.Blazor.LayoutLib;
@@ -10,8 +11,18 @@ namespace CardGameCalculator.Pages;
 
 public partial class MultivariateCalculator
 {
+    [Inject] private FormatService FormatService { get; set; } = default!;
+
     private int _deckSize = 60;
     private int _drawCount = 7;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await FormatService.Initialize();
+        var format = FormatService.Current;
+        _deckSize = format.DeckSize;
+        _drawCount = format.HandSize;
+    }
 
     private List<CardGroup> _groups = new()
     {
@@ -44,6 +55,15 @@ public partial class MultivariateCalculator
             _pendingChartUpdate = false;
             await _chart.React(CancellationToken.None);
         }
+    }
+
+    private void ResetToFormat()
+    {
+        var format = FormatService.Current;
+        _deckSize = format.DeckSize;
+        _drawCount = format.HandSize;
+        _calculated = false;
+        _simulationResult = null;
     }
 
     private void AddGroup() =>

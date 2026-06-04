@@ -1,0 +1,103 @@
+@page "/mana-base"
+
+<PageTitle>Mana Base Analyzer - Card Game Calculator</PageTitle>
+
+<MudText Typo="Typo.h4" GutterBottom="true">Mana Base Analyzer</MudText>
+<MudText Typo="Typo.body1" Class="mb-6" Color="Color.Secondary">
+    Calculate the probability of hitting your land drops on curve.
+</MudText>
+
+<MudGrid>
+    <MudItem xs="12" md="4">
+        <MudCard Elevation="2">
+            <MudCardHeader>
+                <CardHeaderContent>
+                    <MudText Typo="Typo.h6">Parameters</MudText>
+                </CardHeaderContent>
+            </MudCardHeader>
+            <MudCardContent>
+                <MudNumericField @bind-Value="_deckSize" Label="Deck Size" Variant="Variant.Outlined"
+                    Min="1" Max="999" HelperText="Total cards in your deck" Class="mb-4" />
+                <MudNumericField @bind-Value="_landCount" Label="Lands in Deck" Variant="Variant.Outlined"
+                    Min="0" Max="@_deckSize" HelperText="Number of land cards in your deck" Class="mb-4" />
+                <MudNumericField @bind-Value="_handSize" Label="Opening Hand Size" Variant="Variant.Outlined"
+                    Min="1" Max="@_deckSize" HelperText="Cards in opening hand (default 7)" Class="mb-4" />
+                <MudNumericField @bind-Value="_maxTurns" Label="Turns to Show" Variant="Variant.Outlined"
+                    Min="1" Max="20" HelperText="Number of turns to display" />
+            </MudCardContent>
+            <MudCardActions Class="flex-column px-4 pb-4 pt-0">
+                <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="Calculate" FullWidth="true"
+                    StartIcon="@Icons.Material.Filled.Calculate" Class="mb-2">
+                    Calculate
+                </MudButton>
+                <MudButton Variant="Variant.Outlined" OnClick="ResetToFormat" FullWidth="true"
+                    StartIcon="@Icons.Material.Filled.RestartAlt">
+                    Reset to chosen format
+                </MudButton>
+            </MudCardActions>
+        </MudCard>
+    </MudItem>
+
+    <MudItem xs="12" md="8">
+        <MudCard Elevation="2" Class="mb-4">
+            <MudCardHeader>
+                <CardHeaderContent>
+                    <MudText Typo="Typo.h6">Land Drop Probability by Turn</MudText>
+                    @if (_calculated)
+                    {
+                        <MudText Typo="Typo.body2" Color="Color.Secondary">
+                            @_landCount lands in @_deckSize cards — probability of seeing at least N lands
+                        </MudText>
+                    }
+                </CardHeaderContent>
+            </MudCardHeader>
+            <MudCardContent>
+                @if (_calculated)
+                {
+                    <PlotlyChart @ref="_chart" Config="_chartConfig" Layout="_chartLayout" Data="_chartData" />
+                }
+                else
+                {
+                    <MudPaper Class="d-flex align-center justify-center" Style="height:300px;" Elevation="0">
+                        <MudText Color="Color.Secondary">Press Calculate to see the chart.</MudText>
+                    </MudPaper>
+                }
+            </MudCardContent>
+        </MudCard>
+
+        @if (_calculated)
+        {
+            <MudCard Elevation="2">
+                <MudCardHeader>
+                    <CardHeaderContent>
+                        <MudText Typo="Typo.h6">Probability Table</MudText>
+                    </CardHeaderContent>
+                </MudCardHeader>
+                <MudCardContent Class="pa-0">
+                    <MudTable Items="_tableRows" Dense="true" Hover="true" Striped="true">
+                        <HeaderContent>
+                            <MudTh>Turn</MudTh>
+                            <MudTh>Cards Seen</MudTh>
+                            @for (int threshold = 1; threshold <= MaxThreshold; threshold++)
+                            {
+                                var t = threshold;
+                                <MudTh>≥@t land@(t == 1 ? "" : "s")</MudTh>
+                            }
+                            <MudTh>Miss land drop</MudTh>
+                        </HeaderContent>
+                        <RowTemplate>
+                            <MudTd>@(context.Turn == 0 ? "Opening hand" : $"Turn {context.Turn}")</MudTd>
+                            <MudTd>@context.CardsSeen</MudTd>
+                            @for (int threshold = 1; threshold <= MaxThreshold; threshold++)
+                            {
+                                var t = threshold;
+                                <MudTd>@context.Probabilities[t - 1].ToString("P1")</MudTd>
+                            }
+                            <MudTd>@(context.MissLandDropProbability.HasValue ? context.MissLandDropProbability.Value.ToString("P1") : "—")</MudTd>
+                        </RowTemplate>
+                    </MudTable>
+                </MudCardContent>
+            </MudCard>
+        }
+    </MudItem>
+</MudGrid>

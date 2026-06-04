@@ -80,4 +80,28 @@
             </MudCardActions>
         </MudCard>
     </MudItem>
+    <MudItem xs="12" sm="6" md="4">
+        <MudCard Elevation="2">
+            <MudCardHeader>
+                <CardHeaderAvatar>
+                    <MudAvatar Color="Color.Info">
+                        <MudIcon Icon="@Icons.Material.Filled.Landscape" />
+                    </MudAvatar>
+                </CardHeaderAvatar>
+                <CardHeaderContent>
+                    <MudText Typo="Typo.h6">Mana Base Analyzer</MudText>
+                    <MudText Typo="Typo.body2" Color="Color.Secondary">Land drop probability by turn</MudText>
+                </CardHeaderContent>
+            </MudCardHeader>
+            <MudCardContent>
+                <MudText Typo="Typo.body2">
+                    Calculate the probability of hitting your land drops on curve given your deck size
+                    and land count, shown turn by turn from opening hand through the late game.
+                </MudText>
+            </MudCardContent>
+            <MudCardActions>
+                <MudButton Href="/mana-base" Variant="Variant.Text" Color="Color.Info">Open Calculator</MudButton>
+            </MudCardActions>
+        </MudCard>
+    </MudItem>
 </MudGrid>

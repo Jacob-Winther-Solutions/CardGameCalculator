@@ -1,5 +1,6 @@
 using CardGameCalculator.Models;
 using CardGameCalculator.Services;
+using Microsoft.AspNetCore.Components;
 using MudBlazor;
 using Plotly.Blazor;
 using Plotly.Blazor.LayoutLib;
@@ -10,8 +11,16 @@ namespace CardGameCalculator.Pages;
 
 public partial class MulliganLootingCalculator
 {
+    [Inject] private FormatService FormatService { get; set; } = default!;
+
     private int _deckSize = 60;
     private int _maxMulligans = 3;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await FormatService.Initialize();
+        _deckSize = FormatService.Current.DeckSize;
+    }
 
     private List<CardGroup> _groups = new()
     {
@@ -50,6 +59,12 @@ public partial class MulliganLootingCalculator
             _pendingChartUpdate = false;
             await _chart.React(CancellationToken.None);
         }
+    }
+
+    private void ResetToFormat()
+    {
+        _deckSize = FormatService.Current.DeckSize;
+        _simulated = false;
     }
 
     private void AddGroup() =>

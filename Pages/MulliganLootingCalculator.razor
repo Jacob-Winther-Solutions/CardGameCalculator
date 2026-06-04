@@ -83,8 +83,12 @@
             <MudCardActions Class="flex-column align-start px-4 pb-4">
                 <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="RunSimulation"
                     FullWidth="true" StartIcon="@Icons.Material.Filled.PlayArrow"
-                    Disabled="_simulationRunning">
+                    Disabled="_simulationRunning" Class="mb-2">
                     Run Simulation
+                </MudButton>
+                <MudButton Variant="Variant.Outlined" OnClick="ResetToFormat" FullWidth="true"
+                    StartIcon="@Icons.Material.Filled.RestartAlt">
+                    Reset to chosen format
                 </MudButton>
                 <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mt-2"
                     Style="@(_simulationRunning ? "visibility: visible;" : "visibility: hidden;")">

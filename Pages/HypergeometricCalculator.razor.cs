@@ -1,4 +1,6 @@
+using CardGameCalculator.Models;
 using CardGameCalculator.Services;
+using Microsoft.AspNetCore.Components;
 using MudBlazor;
 using Plotly.Blazor;
 using Plotly.Blazor.LayoutLib;
@@ -10,10 +12,21 @@ namespace CardGameCalculator.Pages;
 
 public partial class HypergeometricCalculator
 {
+    [Inject] private FormatService FormatService { get; set; } = default!;
+
     private int _deckSize = 60;
     private int _copiesInDeck = 4;
     private int _cardsDrawn = 7;
     private int _desiredCopies = 1;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await FormatService.Initialize();
+        var format = FormatService.Current;
+        _deckSize = format.DeckSize;
+        _cardsDrawn = format.HandSize;
+        _copiesInDeck = Math.Min(_copiesInDeck, format.MaxCopiesPerCard);
+    }
 
     private bool _calculated;
     private double _exactProb;
@@ -75,6 +88,16 @@ public partial class HypergeometricCalculator
         };
 
         _calculated = true;
+    }
+
+    private void ResetToFormat()
+    {
+        var format = FormatService.Current;
+        _deckSize = format.DeckSize;
+        _cardsDrawn = format.HandSize;
+        _copiesInDeck = Math.Min(4, format.MaxCopiesPerCard);
+        _desiredCopies = 1;
+        _calculated = false;
     }
 
     private static string CopiesLabel(int n) => n == 1 ? "copy" : "copies";

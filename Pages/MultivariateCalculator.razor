@@ -63,10 +63,14 @@
                     <MudAlert Severity="Severity.Warning" Class="mt-3" Dense="true">@_validationError</MudAlert>
                 }
             </MudCardContent>
-            <MudCardActions>
+            <MudCardActions Class="flex-column px-4 pb-4 pt-0">
                 <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="Calculate" FullWidth="true"
-                    StartIcon="@Icons.Material.Filled.Calculate">
+                    StartIcon="@Icons.Material.Filled.Calculate" Class="mb-2">
                     Calculate
+                </MudButton>
+                <MudButton Variant="Variant.Outlined" OnClick="ResetToFormat" FullWidth="true"
+                    StartIcon="@Icons.Material.Filled.RestartAlt">
+                    Reset to chosen format
                 </MudButton>
             </MudCardActions>
         </MudCard>
