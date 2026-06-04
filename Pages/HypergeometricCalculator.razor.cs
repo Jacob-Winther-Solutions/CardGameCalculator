@@ -17,9 +17,9 @@ public partial class HypergeometricCalculator
     [Inject] private IJSRuntime JS { get; set; } = default!;
 
     private int _deckSize = 60;
-    private int _copiesInDeck = 4;
+    private int _instancesInDeck = 4;
     private int _cardsDrawn = 7;
-    private int _desiredCopies = 1;
+    private int _desiredInstances = 1;
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
@@ -33,7 +33,7 @@ public partial class HypergeometricCalculator
         var format = FormatService.Current;
         _deckSize = format.DeckSize;
         _cardsDrawn = format.HandSize;
-        _copiesInDeck = Math.Min(_copiesInDeck, format.MaxCopiesPerCard);
+        _instancesInDeck = Math.Min(_instancesInDeck, format.MaxCopiesPerCard);
     }
 
     private bool _calculated;
@@ -47,16 +47,16 @@ public partial class HypergeometricCalculator
 
     private void Calculate()
     {
-        _copiesInDeck = Math.Clamp(_copiesInDeck, 0, _deckSize);
+        _instancesInDeck = Math.Clamp(_instancesInDeck, 0, _deckSize);
         _cardsDrawn = Math.Clamp(_cardsDrawn, 1, _deckSize);
-        _desiredCopies = Math.Clamp(_desiredCopies, 0, Math.Min(_copiesInDeck, _cardsDrawn));
+        _desiredInstances = Math.Clamp(_desiredInstances, 0, Math.Min(_instancesInDeck, _cardsDrawn));
 
-        _exactProb = ProbabilityCalculator.Hypergeometric(_deckSize, _copiesInDeck, _cardsDrawn, _desiredCopies);
-        _atLeastProb = ProbabilityCalculator.HypergeometricAtLeast(_deckSize, _copiesInDeck, _cardsDrawn, _desiredCopies);
-        _atMostProb = ProbabilityCalculator.HypergeometricAtMost(_deckSize, _copiesInDeck, _cardsDrawn, _desiredCopies);
+        _exactProb = ProbabilityCalculator.Hypergeometric(_deckSize, _instancesInDeck, _cardsDrawn, _desiredInstances);
+        _atLeastProb = ProbabilityCalculator.HypergeometricAtLeast(_deckSize, _instancesInDeck, _cardsDrawn, _desiredInstances);
+        _atMostProb = ProbabilityCalculator.HypergeometricAtMost(_deckSize, _instancesInDeck, _cardsDrawn, _desiredInstances);
 
-        var pmf = ProbabilityCalculator.HypergeometricPmf(_deckSize, _copiesInDeck, _cardsDrawn);
-        var colors = pmf.Select((_, i) => i == _desiredCopies ? "#594AE2" : "#A0A0D0").ToList();
+        var pmf = ProbabilityCalculator.HypergeometricPmf(_deckSize, _instancesInDeck, _cardsDrawn);
+        var colors = pmf.Select((_, i) => i == _desiredInstances ? "#594AE2" : "#A0A0D0").ToList();
 
         _chartLayout = new Plotly.Blazor.Layout
         {
@@ -68,7 +68,7 @@ public partial class HypergeometricCalculator
             {
                 new XAxis
                 {
-                    Title = new Plotly.Blazor.LayoutLib.XAxisLib.Title { Text = "Copies Drawn" },
+                    Title = new Plotly.Blazor.LayoutLib.XAxisLib.Title { Text = "Instances Drawn" },
                     TickMode = TickModeEnum.Linear,
                     DTick = 1
                 }
@@ -91,7 +91,7 @@ public partial class HypergeometricCalculator
                 X = Enumerable.Range(0, pmf.Length).Select(i => (object)i).ToList(),
                 Y = pmf.Select(p => (object)Math.Round(p * 100, 2)).ToList(),
                 Marker = new Marker { Color = colors.Select(c => (object)c).ToList() },
-                HoverTemplate = "%{x} copies: %{y:.2f}%<extra></extra>"
+                HoverTemplate = "%{x} instances: %{y:.2f}%<extra></extra>"
             }
         };
 
@@ -140,13 +140,13 @@ public partial class HypergeometricCalculator
         var format = FormatService.Current;
         _deckSize = format.DeckSize;
         _cardsDrawn = format.HandSize;
-        _copiesInDeck = Math.Min(4, format.MaxCopiesPerCard);
-        _desiredCopies = 1;
+        _instancesInDeck = Math.Min(4, format.MaxCopiesPerCard);
+        _desiredInstances = 1;
         _calculated = false;
         _advisorCalculated = false;
     }
 
-    private static string CopiesLabel(int n) => n == 1 ? "copy" : "copies";
+    private static string InstancesLabel(int n) => n == 1 ? "instance" : "instances";
 }
 
 internal record AdvisorRow(int Instances, double Probability, bool MeetsTarget);

@@ -52,14 +52,18 @@ public static class SimulationEngine
 
     /// <summary>
     /// Runs a Monte Carlo simulation modelling the London Mulligan rule and optional per-turn
-    /// looting effects. Returns the cumulative probability of having all group minimums assembled
-    /// from the opening hand (turn 0) through each subsequent turn up to <paramref name="maxTurn"/>.
+    /// looting and look effects. Returns the cumulative probability of having all group minimums
+    /// assembled from the opening hand (turn 0) through each subsequent turn up to
+    /// <paramref name="maxTurn"/>.
     ///
     /// Mulligan strategy: keep if all minimums are met; otherwise mulligan up to
     /// <paramref name="maxMulligans"/> times. If the maximum is reached, keep regardless.
     /// Bottoming and discard strategy: remove non-group cards first, then cards from the group
     /// with the most excess above its minimum. This models optimal play and gives an upper bound
     /// on the true probability.
+    ///
+    /// On a given turn, looting effects are processed before look effects, so that looting first
+    /// draws deeper into the deck before the look window is inspected.
     /// </summary>
     /// <param name="deckSize">Total number of cards in the deck (N).</param>
     /// <param name="groupSizes">Number of copies of each group in the deck (K₁, K₂, ..., K_G).</param>
@@ -69,6 +73,7 @@ public static class SimulationEngine
     /// <param name="maxTurn">Number of turns to simulate after the opening hand.</param>
     /// <param name="iterations">Number of simulation iterations to run.</param>
     /// <param name="confidenceLevel">Desired confidence level for the Wilson interval, e.g. 0.95.</param>
+    /// <param name="lookEffects">Per-turn inspect-and-reorder effects (Scry, Surveil, Ponder). Applied after looting effects on the same turn.</param>
     /// <returns>
     /// A <see cref="MulliganSimulationResult"/> with cumulative probabilities and Wilson confidence
     /// intervals indexed by turn number, where index 0 is the opening hand post-mulligans.
@@ -82,8 +87,11 @@ public static class SimulationEngine
         int maxTurn,
         int iterations,
         double confidenceLevel = 0.95,
-        bool freeFirstMulligan = false)
+        bool freeFirstMulligan = false,
+        IReadOnlyList<LookEffect>? lookEffects = null)
     {
+        lookEffects ??= Array.Empty<LookEffect>();
+
         var rng = new Random();
         int totalTurns = maxTurn + 1;
         var successCounts = new int[totalTurns];
@@ -132,6 +140,12 @@ public static class SimulationEngine
                         hand.Add(deck[deckPosition++]);
                     for (int d = 0; d < loot.DiscardCount && hand.Count > 0; d++)
                         hand.RemoveAt(FindLeastUseful(hand, minimumCopies));
+                }
+
+                foreach (var look in lookEffects)
+                {
+                    if (look.Turn != turn) continue;
+                    ApplyLookEffect(deck, deckPosition, look.LookCount, look.BottomCount, hand, minimumCopies);
                 }
 
                 if (HandMeetsMinimums(hand, minimumCopies))
@@ -225,6 +239,64 @@ public static class SimulationEngine
         return targetGroup >= 0
             ? hand.FindLastIndex(c => c == targetGroup)
             : hand.Count - 1;
+    }
+
+    /// <summary>
+    /// Reorders the top of the library for a Scry/Surveil/Ponder effect. Inspects up to
+    /// <paramref name="lookCount"/> cards starting at <paramref name="deckPosition"/> without
+    /// drawing them. Cards that contribute to an unmet group minimum are placed first (they will
+    /// be drawn sooner); excess and non-group cards are placed last.
+    ///
+    /// At most <paramref name="bottomCount"/> non-useful cards are sent to the "bottom" — in the
+    /// simulation this means placing them at the end of the look window. If there are more useless
+    /// cards in the window than <paramref name="bottomCount"/> allows, the extras are kept on top
+    /// after the useful cards (forced back by the effect's limit).
+    ///
+    /// The greedy keep policy models optimal play and gives an upper bound on the true probability.
+    /// </summary>
+    private static void ApplyLookEffect(
+        int?[] deck,
+        int deckPosition,
+        int lookCount,
+        int bottomCount,
+        List<int?> hand,
+        IReadOnlyList<int> minimumCopies)
+    {
+        int available = Math.Min(lookCount, deck.Length - deckPosition);
+        if (available <= 0) return;
+
+        Span<int> handCounts = stackalloc int[minimumCopies.Count];
+        foreach (var card in hand)
+            if (card is int g) handCounts[g]++;
+
+        var usefulCards  = new List<int?>(available);
+        var uselessCards = new List<int?>(available);
+
+        for (int i = 0; i < available; i++)
+        {
+            var card = deck[deckPosition + i];
+            if (card is int groupIndex && handCounts[groupIndex] < minimumCopies[groupIndex])
+            {
+                handCounts[groupIndex]++;
+                usefulCards.Add(card);
+            }
+            else
+            {
+                uselessCards.Add(card);
+            }
+        }
+
+        // Respect the BottomCount cap: any useless cards beyond the limit are forced back on top.
+        int actualBottom = Math.Min(uselessCards.Count, bottomCount);
+        int forcedKeep   = uselessCards.Count - actualBottom;
+
+        int writePos = deckPosition;
+        foreach (var card in usefulCards)
+            deck[writePos++] = card;
+        for (int i = 0; i < forcedKeep; i++)
+            deck[writePos++] = uselessCards[i];
+        for (int i = forcedKeep; i < uselessCards.Count; i++)
+            deck[writePos++] = uselessCards[i];
     }
 
     /// <summary>

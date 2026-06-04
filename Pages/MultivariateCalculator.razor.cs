@@ -84,17 +84,17 @@ public partial class MultivariateCalculator
 
         if (totalGroupCards > _deckSize)
         {
-            _validationError = $"Total copies across all groups ({totalGroupCards}) exceeds deck size ({_deckSize}).";
+            _validationError = $"Total instances across all groups ({totalGroupCards}) exceeds deck size ({_deckSize}).";
             return;
         }
         if (totalDesired > _drawCount)
         {
-            _validationError = $"Total desired copies ({totalDesired}) exceeds draw count ({_drawCount}).";
+            _validationError = $"Total desired instances ({totalDesired}) exceeds draw count ({_drawCount}).";
             return;
         }
         if (_groups.Any(g => g.DesiredCopies > g.CopiesInDeck))
         {
-            _validationError = "One or more groups have a desired count that exceeds their copies in deck.";
+            _validationError = "One or more groups have a desired count that exceeds their instances in deck.";
             return;
         }
 

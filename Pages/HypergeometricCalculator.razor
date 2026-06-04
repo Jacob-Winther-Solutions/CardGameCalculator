@@ -12,10 +12,10 @@
         <MudText Class="mb-3">
             The <strong>hypergeometric distribution</strong> models the number of target cards \(X\) drawn
             when \(n\) cards are drawn <em>without replacement</em> from a deck of \(N\) cards containing
-            \(K\) copies of the target card.
+            \(K\) instances of the target.
         </MudText>
 
-        <MudText Typo="Typo.subtitle2" Class="mb-1">Probability of exactly k copies</MudText>
+        <MudText Typo="Typo.subtitle2" Class="mb-1">Probability of exactly k instances</MudText>
         <div class="my-3">
             $$ P(X = k) = \frac{\binom{K}{k}\,\binom{N-K}{n-k}}{\binom{N}{n}} $$
         </div>
@@ -26,23 +26,35 @@
 
         <MudText Typo="Typo.subtitle2" Class="mb-1">Cumulative forms</MudText>
         <div class="my-3">
-            $$ P(X \geq k) = \sum_{i=k}^{\min(K,\,n)} P(X = i) \qquad \text{(at least } k \text{ copies)} $$
+            $$ P(X \geq k) = \sum_{i=k}^{\min(K,\,n)} P(X = i) \qquad \text{(at least } k \text{ instances)} $$
         </div>
         <div class="my-3">
-            $$ P(X \leq k) = \sum_{i=0}^{k} P(X = i) \qquad \text{(at most } k \text{ copies)} $$
+            $$ P(X \leq k) = \sum_{i=0}^{k} P(X = i) \qquad \text{(at most } k \text{ instances)} $$
         </div>
 
         <MudText Typo="Typo.subtitle2" Class="mt-4 mb-2">Parameters</MudText>
         <MudText>\(N\) — total cards in the deck</MudText>
-        <MudText>\(K\) — copies of the target card in the deck</MudText>
+        <MudText>\(K\) — instances of the target in the deck</MudText>
         <MudText>\(n\) — cards drawn (e.g. opening hand size)</MudText>
-        <MudText Class="mb-4">\(k\) — exact number of copies drawn</MudText>
+        <MudText Class="mb-4">\(k\) — exact number of instances drawn</MudText>
 
         <MudAlert Severity="Severity.Info" Dense="true" Class="mb-6">
             Because cards are drawn <strong>without replacement</strong>, each draw changes the composition of the
             remaining deck — successive draws are not independent. The hypergeometric distribution models this
             dependency exactly, unlike the binomial approximation which incorrectly assumes independence.
         </MudAlert>
+
+        <MudText Typo="Typo.h6" Class="mb-2">Assumptions &amp; Simplifications</MudText>
+        <MudText Class="mb-3">
+            The following simplifications are in effect. Verify that they are acceptable for your use case
+            before relying on the results.
+        </MudText>
+        <ul style="padding-left: 1.5rem;" class="mb-6">
+            <li><strong>Perfect shuffle</strong> — the deck is treated as uniformly randomly ordered. Imperfect shuffling that causes clumping or bias is not modeled.</li>
+            <li class="mt-2"><strong>No mulligans</strong> — the draw is modeled as a single snapshot of <em>n</em> cards from the deck. Mulligans, which change the effective hand composition, are not accounted for. Use the Mulligan &amp; Looting Calculator for mulligan-aware estimates.</li>
+            <li class="mt-2"><strong>Cards within the target group are interchangeable</strong> — only the instance count matters; individual card names within the group are not distinguished.</li>
+            <li class="mt-2"><strong>No sequencing effects</strong> — scry, fetch lands, cantrips, and other library-manipulation effects are not modeled. The <em>n</em> drawn cards are assumed to come from a freshly shuffled, unfiltered library.</li>
+        </ul>
 
         <MudDivider Class="mb-4" />
         <MudText Typo="Typo.h6" Class="mb-2">Optimal Instances Advisor</MudText>
@@ -66,19 +78,19 @@
         <MudText Class="mb-3">
             Set the four parameters describing your deck scenario and press <strong>Calculate</strong>.
             The bar chart shows the full probability distribution; the highlighted bar corresponds to
-            your chosen desired copies.
+            your chosen desired instances.
         </MudText>
 
         <MudText Typo="Typo.subtitle2" Class="mb-2">Example — Lightning Bolt in Standard</MudText>
         <MudText Class="mb-2">
-            You run 4 copies of Lightning Bolt in a 60-card deck. What is the probability of drawing
-            at least one copy in your opening hand of 7?
+            Your deck has 4 instances of Lightning Bolt in 60 cards. What is the probability of drawing
+            at least one instance in your opening hand of 7?
         </MudText>
         <ol style="padding-left: 1.5rem; margin-bottom: 0.5rem;">
             <li>Deck Size: <strong>60</strong></li>
-            <li>Copies in Deck: <strong>4</strong></li>
+            <li>Instances in Deck: <strong>4</strong></li>
             <li>Cards Drawn: <strong>7</strong></li>
-            <li>Desired Copies: <strong>1</strong></li>
+            <li>Desired Instances: <strong>1</strong></li>
         </ol>
         <MudText Class="mb-4">
             The <em>At Least 1</em> result gives your answer — approximately <strong>39.95%</strong>.
@@ -121,20 +133,20 @@
             <MudCardContent>
                 <MudNumericField @bind-Value="_deckSize" Label="Deck Size" Variant="Variant.Outlined"
                     Min="1" Max="999" HelperText="Total cards in your deck" Class="mb-4" />
-                <MudNumericField @bind-Value="_copiesInDeck" Label="Copies in Deck" Variant="Variant.Outlined"
-                    Min="0" Max="@_deckSize" HelperText="Copies of the card in your deck" Class="mb-4" />
+                <MudNumericField @bind-Value="_instancesInDeck" Label="Instances in Deck" Variant="Variant.Outlined"
+                    Min="0" Max="@_deckSize" HelperText="Instances of the target in your deck" Class="mb-4" />
                 <MudNumericField @bind-Value="_cardsDrawn" Label="Cards Drawn" Variant="Variant.Outlined"
                     Min="1" Max="@_deckSize" HelperText="Cards drawn (e.g. opening hand size)" Class="mb-4" />
-                <MudNumericField @bind-Value="_desiredCopies" Label="Desired Copies" Variant="Variant.Outlined"
-                    Min="0" Max="@Math.Min(_copiesInDeck, _cardsDrawn)"
-                    HelperText="How many copies you want to see" />
+                <MudNumericField @bind-Value="_desiredInstances" Label="Desired Instances" Variant="Variant.Outlined"
+                    Min="0" Max="@Math.Min(_instancesInDeck, _cardsDrawn)"
+                    HelperText="How many instances you want to see" />
             </MudCardContent>
             <MudCardActions Class="flex-column px-4 pb-4 pt-0">
                 <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="Calculate" FullWidth="true"
                     StartIcon="@Icons.Material.Filled.Calculate" Class="mb-2">
                     Calculate
                 </MudButton>
-                <MudTooltip Text="Resets Deck Size, Cards Drawn, and Copies in Deck to the defaults of the currently selected format. Clears the current results.">
+                <MudTooltip Text="Resets Deck Size, Cards Drawn, and Instances in Deck to the defaults of the currently selected format. Clears the current results.">
                     <MudButton Variant="Variant.Outlined" OnClick="ResetToFormat" FullWidth="true"
                         StartIcon="@Icons.Material.Filled.RestartAlt">
                         Reset to chosen format
@@ -154,17 +166,17 @@
                 <MudCardContent Class="pa-0">
                     <MudList T="string" Dense="true">
                         <MudListItem>
-                            <MudText Typo="Typo.caption" Color="Color.Secondary">Exactly @_desiredCopies @CopiesLabel(_desiredCopies)</MudText>
+                            <MudText Typo="Typo.caption" Color="Color.Secondary">Exactly @_desiredInstances @InstancesLabel(_desiredInstances)</MudText>
                             <MudText Typo="Typo.h5" Color="Color.Primary">@_exactProb.ToString("P2")</MudText>
                         </MudListItem>
                         <MudDivider />
                         <MudListItem>
-                            <MudText Typo="Typo.caption" Color="Color.Secondary">At least @_desiredCopies @CopiesLabel(_desiredCopies)</MudText>
+                            <MudText Typo="Typo.caption" Color="Color.Secondary">At least @_desiredInstances @InstancesLabel(_desiredInstances)</MudText>
                             <MudText Typo="Typo.h5" Color="Color.Primary">@_atLeastProb.ToString("P2")</MudText>
                         </MudListItem>
                         <MudDivider />
                         <MudListItem>
-                            <MudText Typo="Typo.caption" Color="Color.Secondary">At most @_desiredCopies @CopiesLabel(_desiredCopies)</MudText>
+                            <MudText Typo="Typo.caption" Color="Color.Secondary">At most @_desiredInstances @InstancesLabel(_desiredInstances)</MudText>
                             <MudText Typo="Typo.h5" Color="Color.Primary">@_atMostProb.ToString("P2")</MudText>
                         </MudListItem>
                     </MudList>
@@ -252,7 +264,7 @@
                     @if (_calculated)
                     {
                         <MudText Typo="Typo.body2" Color="Color.Secondary">
-                            Drawing from @_deckSize cards (@_copiesInDeck copies), @_cardsDrawn drawn
+                            Drawing from @_deckSize cards (@_instancesInDeck instances), @_cardsDrawn drawn
                         </MudText>
                     }
                 </CardHeaderContent>

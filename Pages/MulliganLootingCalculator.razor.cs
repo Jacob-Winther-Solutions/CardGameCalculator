@@ -29,6 +29,7 @@ public partial class MulliganLootingCalculator
 
     private List<CardGroup> _groups = new();
     private List<LootingEffect> _lootingEffects = new();
+    private List<LookEffect> _lookEffects = new();
 
     private int _maxTurn = 5;
     private int _iterations = 1_000;
@@ -39,7 +40,7 @@ public partial class MulliganLootingCalculator
     private string? _validationError;
 
     private MulliganSimulationResult? _baseResult;
-    private MulliganSimulationResult? _lootingResult;
+    private MulliganSimulationResult? _effectsResult;
 
     private PlotlyChart? _chart;
     private bool _pendingChartUpdate;
@@ -78,6 +79,11 @@ public partial class MulliganLootingCalculator
 
     private void RemoveLootingEffect(LootingEffect effect) => _lootingEffects.Remove(effect);
 
+    private void AddLookEffect() =>
+        _lookEffects.Add(new LookEffect { Name = "New Effect", Turn = 1, LookCount = 2, BottomCount = 1 });
+
+    private void RemoveLookEffect(LookEffect effect) => _lookEffects.Remove(effect);
+
     private async Task RunSimulation()
     {
         if (_simulationRunning) return;
@@ -89,12 +95,12 @@ public partial class MulliganLootingCalculator
 
         if (groupSizes.Sum() > _deckSize)
         {
-            _validationError = $"Total copies across all groups ({groupSizes.Sum()}) exceeds deck size ({_deckSize}).";
+            _validationError = $"Total instances across all groups ({groupSizes.Sum()}) exceeds deck size ({_deckSize}).";
             return;
         }
         if (_groups.Any(g => g.DesiredCopies > g.CopiesInDeck))
         {
-            _validationError = "One or more groups have a desired count that exceeds their copies in deck.";
+            _validationError = "One or more groups have a desired count that exceeds their instances in deck.";
             return;
         }
 
@@ -108,10 +114,12 @@ public partial class MulliganLootingCalculator
             _deckSize, groupSizes, minimums, _maxMulligans,
             Array.Empty<LootingEffect>(), _maxTurn, _iterations, confidenceLevel, _freeFirstMulligan);
 
-        _lootingResult = _lootingEffects.Count > 0
+        bool hasEffects = _lootingEffects.Count > 0 || _lookEffects.Count > 0;
+        _effectsResult = hasEffects
             ? SimulationEngine.RunWithMulligans(
                 _deckSize, groupSizes, minimums, _maxMulligans,
-                _lootingEffects, _maxTurn, _iterations, confidenceLevel, _freeFirstMulligan)
+                _lootingEffects, _maxTurn, _iterations, confidenceLevel, _freeFirstMulligan,
+                _lookEffects.Count > 0 ? (IReadOnlyList<LookEffect>)_lookEffects : null)
             : null;
 
         BuildChart();
@@ -157,20 +165,20 @@ public partial class MulliganLootingCalculator
                 X = xLabels,
                 Y = _baseResult.CumulativeProbabilityByTurn.Select(p => (object)Math.Round(p * 100, 2)).ToList(),
                 Mode = ModeFlag.Lines | ModeFlag.Markers,
-                Name = _lootingResult is not null ? "Base (no effects)" : "Assembled by turn",
+                Name = _effectsResult is not null ? "Base (no effects)" : "Assembled by turn",
                 Line = new Line { Color = "#594AE2", Width = 2 },
                 ShowLegend = true
             });
         }
 
-        if (_lootingResult is not null)
+        if (_effectsResult is not null)
         {
             traces.Add(new Scatter
             {
                 X = xLabels,
-                Y = _lootingResult.CumulativeProbabilityByTurn.Select(p => (object)Math.Round(p * 100, 2)).ToList(),
+                Y = _effectsResult.CumulativeProbabilityByTurn.Select(p => (object)Math.Round(p * 100, 2)).ToList(),
                 Mode = ModeFlag.Lines | ModeFlag.Markers,
-                Name = "With card selection",
+                Name = "With effects",
                 Line = new Line { Color = "#FF9800", Width = 2 },
                 ShowLegend = true
             });

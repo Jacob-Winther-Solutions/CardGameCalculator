@@ -34,12 +34,18 @@
         <MudText>\(L\) — land threshold (at least \(L\) lands)</MudText>
         <MudText Class="mb-4">\(T\) — turn number</MudText>
 
-        <MudAlert Severity="Severity.Warning" Dense="true">
-            This model assumes <strong>no mulligans</strong>, <strong>no fetchlands</strong>, and that every
-            land produces mana without restriction. Real games diverge from these assumptions. For a
-            simulation-based approach that accounts for mulligans and card selection, use the
-            Mulligan &amp; Looting Calculator.
-        </MudAlert>
+        <MudText Typo="Typo.h6" Class="mt-4 mb-2">Assumptions &amp; Simplifications</MudText>
+        <MudText Class="mb-3">
+            The following simplifications are in effect. Verify that they are acceptable for your use case
+            before relying on the results.
+        </MudText>
+        <ul style="padding-left: 1.5rem;" class="mb-4">
+            <li><strong>No mulligans</strong> — the opening hand is kept as-is. Mulligans reduce effective hand size and alter how many lands a player sees early. For mulligan-aware estimates, use the Mulligan &amp; Looting Calculator.</li>
+            <li class="mt-2"><strong>Exactly one draw per turn</strong> — cards seen accumulate linearly as \(h + T\). Looting, cycling, scry, fetch lands, and any other mechanism that draws or filters additional cards are not modeled.</li>
+            <li class="mt-2"><strong>No fetchlands or land tutors</strong> — all cards have equal probability of being a land. Fetch lands, Cultivate, and similar effects that selectively add lands to hand or play are not modeled.</li>
+            <li class="mt-2"><strong>Lands produce unrestricted mana</strong> — color requirements are not modeled. All lands are treated as functionally equivalent basic lands.</li>
+            <li class="mt-2"><strong>Perfect shuffle</strong> — the deck is treated as uniformly randomly ordered. Imperfect shuffling that causes clumping or bias is not modeled.</li>
+        </ul>
     </MudExpansionPanel>
 
     <MudExpansionPanel Text="How to Use">

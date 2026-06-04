@@ -4,8 +4,8 @@
 
 <MudText Typo="Typo.h4" GutterBottom="true">Mulligan & Looting Calculator</MudText>
 <MudText Typo="Typo.body1" Class="mb-6" Color="Color.Secondary">
-    Simulate the London Mulligan rule and turn-by-turn card selection effects to model how quickly
-    a multi-part combination is assembled in practice.
+    Simulate the London Mulligan rule, turn-by-turn looting, and scry/surveil effects to model how
+    quickly a multi-part combination is assembled in practice.
 </MudText>
 
 <MudExpansionPanels Class="mb-6" MultiExpansion="true">
@@ -42,8 +42,25 @@
         <MudText Class="mb-4">
             A card selection effect on turn \(T\) draws \(d\) cards then discards \(d\) cards. The simulator uses
             a <em>greedy keep policy</em>: when choosing which cards to discard, it retains cards that
-            contribute to unfulfilled combo groups and discards excess copies and off-group cards first.
+            contribute to unfulfilled combo groups and discards excess instances and off-group cards first.
             This models optimal play rather than random discard.
+        </MudText>
+
+        <MudText Typo="Typo.h6" Class="mb-2">Scry and Surveil Effects</MudText>
+        <MudText Class="mb-3">
+            A scry or surveil effect on turn \(T\) inspects the top \(l\) cards of the library without
+            drawing them, then sends up to \(b\) of them to the bottom (Scry) or graveyard (Surveil),
+            and keeps the rest on top. The simulator applies the same greedy keep policy: a card is
+            placed on top if it contributes to an unmet group minimum; non-group and excess-group cards
+            are sent to the bottom. The BottomCount cap \(b\) is respected — if the window contains more
+            non-useful cards than \(b\), the extras are kept on top after the useful ones.
+        </MudText>
+        <div class="my-3">
+            $$ \text{Sent to bottom} = \min\!\left(\text{useless cards in window},\; b\right) $$
+        </div>
+        <MudText Class="mb-4">
+            On any given turn, looting effects are processed before look effects. This models a player
+            drawing deeper into the library before inspecting the new top.
         </MudText>
 
         <MudText Typo="Typo.h6" Class="mb-2">Wilson Score Confidence Interval</MudText>
@@ -54,18 +71,33 @@
         <div class="my-3">
             $$ \text{CI} = \frac{\hat{p} + \dfrac{z^2}{2n} \pm z\,\sqrt{\dfrac{\hat{p}(1-\hat{p})}{n} + \dfrac{z^2}{4n^2}}}{1 + \dfrac{z^2}{n}} $$
         </div>
-        <MudText>
+        <MudText Class="mb-6">
             where \(\hat{p}\) is the empirical probability, \(n\) is the number of iterations, and \(z\) is
             the standard normal quantile for the chosen confidence level (e.g. \(z = 1.96\) for 95%).
         </MudText>
+
+        <MudText Typo="Typo.h6" Class="mb-2">Assumptions &amp; Simplifications</MudText>
+        <MudText Class="mb-3">
+            The following simplifications are in effect. Verify that they are acceptable for your use case
+            before relying on the results.
+        </MudText>
+        <ul style="padding-left: 1.5rem;">
+            <li><strong>Greedy keep policy (upper bound)</strong> — all discard, mulligan-bottoming, and scry/surveil reordering decisions retain cards that contribute to unmet group minimums and remove excess or non-group cards first. This models optimal play and produces an <em>upper bound</em>; real players making suboptimal decisions will assemble the combo less often.</li>
+            <li class="mt-2"><strong>Cards within a group are interchangeable</strong> — all instances within a group are treated as equivalent. Individual card names within a group are not distinguished.</li>
+            <li class="mt-2"><strong>No mana constraints</strong> — only whether combo groups are assembled is tracked. Color requirements, mana curve, and land drops are not modeled.</li>
+            <li class="mt-2"><strong>No opponent interaction</strong> — counterspells, discard, and other disruption are not accounted for.</li>
+            <li class="mt-2"><strong>Scry and Surveil are modeled identically</strong> — sending cards to the bottom of the library (Scry) and sending them to the graveyard (Surveil) are both modeled as placing rejected cards at the end of the look window. For combo assembly over short game sequences this difference is negligible.</li>
+            <li class="mt-2"><strong>Ponder: no-shuffle path only</strong> — the optional reshuffle on Ponder-style effects is not modeled. Under the greedy keep policy, reshuffling is never optimal when the top cards can be freely arranged, so this omission does not affect accuracy for optimal-play estimates.</li>
+            <li class="mt-2"><strong>Cantrip scry fires after the normal draw</strong> — for cards like Preordain (Scry 2, then draw 1), the normal turn draw is taken first, and the look effect is then applied to the remaining top cards. The actual card inspects the top cards <em>before</em> the draw. The resulting hand composition is very similar in practice but not exact.</li>
+        </ul>
     </MudExpansionPanel>
 
     <MudExpansionPanel Text="How to Use">
         <MudText Class="mb-3">
-            Define the deck size, combo groups, and any card selection effects, then press
-            <strong>Run Simulation</strong>. When card selection effects are present, the chart shows two lines —
-            the base curve (no effects) and the card selection curve — letting you directly measure the
-            improvement from each effect.
+            Define the deck size, combo groups, and any looting or scry/surveil effects, then press
+            <strong>Run Simulation</strong>. When any effects are present, the chart shows two lines —
+            the base curve (no effects) and the <em>With effects</em> curve — letting you directly measure
+            the improvement from each set of effects.
         </MudText>
 
         <MudAlert Severity="Severity.Info" Dense="true" Class="mb-4">
@@ -77,7 +109,7 @@
         <MudText Typo="Typo.subtitle2" Class="mb-2">Example — Comparing Base vs. Card Selection</MudText>
         <MudText Class="mb-2">
             Your 60-card combo deck has three groups: two 8-card groups and one 12-card group,
-            each requiring at least 1 copy. You play Faithless Looting on turn 1 (draw 2, discard 2).
+            each requiring at least 1 instance. You play Faithless Looting on turn 1 (draw 2, discard 2).
             How much does it improve your odds of having the combo assembled by turn 3?
         </MudText>
         <ol style="padding-left: 1.5rem; margin-bottom: 0.5rem;">
@@ -87,9 +119,27 @@
             <li>Max Turn: <strong>5</strong>, Iterations: <strong>1 000</strong></li>
         </ol>
         <MudText Class="mb-4">
-            Press <strong>Run Simulation</strong>. The orange <em>With card selection</em> line shows the
+            Press <strong>Run Simulation</strong>. The orange <em>With effects</em> line shows the
             improvement over the blue <em>Base</em> line — the gap at each turn quantifies how much
             Faithless Looting helps your consistency.
+        </MudText>
+
+        <MudDivider Class="mb-4" />
+        <MudText Typo="Typo.subtitle2" Class="mb-2">Example — Quantifying a Scry Effect</MudText>
+        <MudText Class="mb-2">
+            Your 60-card combo deck has the same three groups as above. You cast Preordain on turn 1
+            (Scry 2, then draw 1). How much does the scry improve your odds compared to the base line?
+        </MudText>
+        <ol style="padding-left: 1.5rem; margin-bottom: 0.5rem;">
+            <li>Set up the same three groups</li>
+            <li>Leave the Card Selection Effects section empty</li>
+            <li>In Scry / Surveil Effects, add: Name <strong>Preordain</strong>, Turn <strong>1</strong>, Look <strong>2</strong>, Bottom <strong>2</strong></li>
+            <li>Max Turn: <strong>5</strong>, Iterations: <strong>10 000</strong></li>
+        </ol>
+        <MudText Class="mb-4">
+            The Look count of 2 and Bottom count of 2 reflect Preordain's Scry 2. The card drawn after
+            the scry is represented by the normal turn draw, which the simulator takes before applying
+            the look effect — see the Assumptions section in Theory &amp; Math for details.
         </MudText>
 
         <MudAlert Severity="Severity.Info" Dense="true">
@@ -241,6 +291,57 @@
                 }
                 <MudButton Variant="Variant.Text" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add"
                     OnClick="AddLootingEffect" Class="mt-2">
+                    Add Effect
+                </MudButton>
+            </MudCardContent>
+        </MudCard>
+
+        <MudCard Elevation="2" Class="mt-4">
+            <MudCardHeader>
+                <CardHeaderContent>
+                    <MudText Typo="Typo.h6">Scry / Surveil Effects</MudText>
+                    <MudText Typo="Typo.body2" Color="Color.Secondary">
+                        Inspect-and-reorder effects applied on the specified turn (Scry, Surveil, Ponder)
+                    </MudText>
+                </CardHeaderContent>
+            </MudCardHeader>
+            <MudCardContent>
+                @if (_lookEffects.Count == 0)
+                {
+                    <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mb-2">
+                        No scry / surveil effects defined.
+                    </MudText>
+                }
+                else
+                {
+                    @foreach (var effect in _lookEffects)
+                    {
+                        <MudGrid Spacing="1" Class="mb-1">
+                            <MudItem xs="4">
+                                <MudTextField @bind-Value="effect.Name" Label="Name"
+                                    Variant="Variant.Outlined" Margin="Margin.Dense" />
+                            </MudItem>
+                            <MudItem xs="2">
+                                <MudNumericField @bind-Value="effect.Turn" Label="Turn"
+                                    Variant="Variant.Outlined" Margin="Margin.Dense" Min="1" Max="@_maxTurn" />
+                            </MudItem>
+                            <MudItem xs="2">
+                                <MudNumericField @bind-Value="effect.LookCount" Label="Look"
+                                    Variant="Variant.Outlined" Margin="Margin.Dense" Min="1" Max="@_deckSize" />
+                            </MudItem>
+                            <MudItem xs="2">
+                                <MudNumericField @bind-Value="effect.BottomCount" Label="Bottom"
+                                    Variant="Variant.Outlined" Margin="Margin.Dense" Min="0" Max="@effect.LookCount" />
+                            </MudItem>
+                            <MudItem xs="2" Class="d-flex align-center justify-center">
+                                <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="Color.Error"
+                                    Size="Size.Small" OnClick="@(() => RemoveLookEffect(effect))" />
+                            </MudItem>
+                        </MudGrid>
+                    }
+                }
+                <MudButton Variant="Variant.Text" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add"
+                    OnClick="AddLookEffect" Class="mt-2">
                     Add Effect
                 </MudButton>
             </MudCardContent>

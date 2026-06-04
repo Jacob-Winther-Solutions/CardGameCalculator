@@ -40,15 +40,29 @@
         <MudText Typo="Typo.subtitle2" Class="mt-2 mb-2">Parameters</MudText>
         <MudText>\(N\) — deck size</MudText>
         <MudText>\(K_i\) — number of cards in group \(i\)</MudText>
-        <MudText>\(m_i\) — minimum copies required from group \(i\)</MudText>
+        <MudText>\(m_i\) — minimum instances required from group \(i\)</MudText>
         <MudText>\(n\) — cards drawn (hand size)</MudText>
         <MudText Class="mb-4">\(G\) — number of groups</MudText>
 
-        <MudAlert Severity="Severity.Info" Dense="true">
+        <MudAlert Severity="Severity.Info" Dense="true" Class="mb-6">
             You <strong>cannot</strong> multiply individual group probabilities together to get the joint
             probability. All groups draw from the same deck, creating a negative correlation — assembling
             one combo piece slightly reduces the chances of finding another.
         </MudAlert>
+
+        <MudText Typo="Typo.h6" Class="mb-2">Assumptions &amp; Simplifications</MudText>
+        <MudText Class="mb-3">
+            The following simplifications are in effect. Verify that they are acceptable for your use case
+            before relying on the results.
+        </MudText>
+        <ul style="padding-left: 1.5rem;">
+            <li><strong>Perfect shuffle</strong> — the deck is treated as uniformly randomly ordered. Imperfect shuffling that causes clumping or bias is not modeled.</li>
+            <li class="mt-2"><strong>No mulligans</strong> — the draw is modeled as a single snapshot of <em>n</em> cards. Mulligans are not accounted for. Use the Mulligan &amp; Looting Calculator for mulligan-aware estimates.</li>
+            <li class="mt-2"><strong>Groups are mutually exclusive</strong> — each card belongs to exactly one group. A card that could fulfill two roles must be assigned to one group only; the model has no concept of a card satisfying multiple group minimums simultaneously.</li>
+            <li class="mt-2"><strong>Cards within each group are interchangeable</strong> — only the count per group matters; individual card names within a group are not distinguished.</li>
+            <li class="mt-2"><strong>No sequencing effects</strong> — scry, fetch lands, cantrips, and other library-manipulation effects are not modeled.</li>
+            <li class="mt-2"><strong>Monte Carlo simulation uses the same assumptions</strong> — the simulation is an empirical cross-check of the analytical result, not a more accurate model. Both produce the same expected probability under the same simplifications.</li>
+        </ul>
     </MudExpansionPanel>
 
     <MudExpansionPanel Text="How to Use">
@@ -60,7 +74,7 @@
 
         <MudText Typo="Typo.subtitle2" Class="mb-2">Example — Three-Piece Combo in Standard</MudText>
         <MudText Class="mb-2">
-            Your 60-card deck needs three combo pieces to win. You run 4 copies of each.
+            Your 60-card deck needs three combo pieces to win. You run 4 instances of each.
             What is the probability of holding all three in your opening hand of 7?
         </MudText>
         <ol style="padding-left: 1.5rem; margin-bottom: 0.5rem;">
@@ -80,7 +94,7 @@
         <MudText Typo="Typo.subtitle2" Class="mb-2">Example — Reanimator Deck in Standard</MudText>
         <MudText Class="mb-2">
             Your 100-card singleton reanimator deck needs three roles covered in hand: a Reanimation Target
-            (10 copies), a Reanimation Spell (12 copies), and a Self-mill Card (20 copies).
+            (10 instances), a Reanimation Spell (12 instances), and a Self-mill Card (20 instances).
             What is the probability of having at least one of each in your opening hand of 7?
         </MudText>
         <ol style="padding-left: 1.5rem; margin-bottom: 0.5rem;">
@@ -90,8 +104,8 @@
             <li>Group 3 — "Self-mill Cards": In Deck <strong>20</strong>, Want <strong>1</strong></li>
         </ol>
         <MudText>
-            Press <strong>Calculate</strong>. Because this deck runs far more copies of each role than the
-            strict 4-copy example above, the opening-hand probability is significantly higher — demonstrating
+            Press <strong>Calculate</strong>. Because this deck runs far more instances of each role than the
+            four-instance example above, the opening-hand probability is significantly higher — demonstrating
             the value of redundancy in combo decks.
         </MudText>
     </MudExpansionPanel>

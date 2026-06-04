@@ -26,6 +26,7 @@ Single Blazor WebAssembly project (net10.0) targeting Azure Static Web Apps. No 
 **Models:**
 - `CardGroup` — a named group of cards defined by `CopiesInDeck` and `DesiredCopies`; shared across Multivariate and Mulligan pages
 - `LootingEffect` — a per-turn draw/discard effect (`Turn`, `DrawCount`, `DiscardCount`)
+- `LookEffect` — a per-turn inspect-and-reorder effect (`Turn`, `LookCount`, `BottomCount`)
 - `SimulationResult` / `MulliganSimulationResult` — records holding Monte Carlo output including Wilson CI bounds
 - `FormatPreset` — record with `Name`, `DeckSize`, `HandSize`, `MaxCopiesPerCard`, `DefaultLandCount`, `FreeFirstMulligan`; three built-in presets: 60-card Traditional (false), 100-card Singleton — 99 playable cards (true), 40-card Limited (false)
 - `AdvisorRow` — internal record used by `HypergeometricCalculator` to hold a single row of the Optimal Instances Advisor results (`Instances`, `Probability`, `MeetsTarget`)
@@ -66,10 +67,12 @@ Single Blazor WebAssembly project (net10.0) targeting Azure Static Web Apps. No 
 
 ### ~~Full Page Descriptions (Theory + How-To-Use)~~ — COMPLETE
 
-### Scry / Surveil / Ponder Effects
+### ~~Scry / Surveil / Ponder Effects~~ — COMPLETE
 
-Extends the Mulligan & Looting simulator to model ordered-look effects (inspect top N cards, selectively bottom some).
+### Ponder Shuffle Path
 
-- **Math:** Requires a new simulation mode in `SimulationEngine`. Unlike looting (blind draw-discard), scry/ponder lets the player inspect and choose. Decision policy: bottom a card if it doesn't contribute to any combo group, prefer bottoming excess lands over non-combo spells.
-- **UI:** New `LookEffect` model (Name, Turn, LookCount, BottomCount). Toggle or new section on the Mulligan & Looting page, or a standalone page.
-- **Models:** New `LookEffect` model alongside `LootingEffect`.
+The scry/surveil simulation uses the no-shuffle path only (always optimal under the greedy keep policy). A future upgrade could model the optional reshuffle on Ponder-style effects.
+
+### Unified Effects Ordering
+
+When a turn has both looting and look effects, looting fires first (deeper deck penetration before looking). A future upgrade could replace the two separate effect sections on the Mulligan page with a single ordered list where each row has a type dropdown (Loot / Look), giving the user full control over ordering.
