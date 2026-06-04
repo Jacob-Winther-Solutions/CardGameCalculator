@@ -13,7 +13,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 Single Blazor WebAssembly project (net10.0) targeting Azure Static Web Apps. No server-side component.
 
 **Pages** — four calculators, each split into `.razor` (markup) and `.razor.cs` (code-behind):
-- `HypergeometricCalculator` (`/hypergeometric`) — single-card draw probability using exact hypergeometric math
+- `HypergeometricCalculator` (`/hypergeometric`) — single-card draw probability using exact hypergeometric math; includes the Optimal Instances Advisor (inverse hypergeometric: finds minimum instances in deck to meet a target probability)
 - `MultivariateCalculator` (`/multivariate`) — joint probability across multiple card groups, with Monte Carlo probability curve
 - `MulliganLootingCalculator` (`/mulligan-looting`) — London Mulligan simulation with per-turn looting effects
 - `ManaBaseAnalyzer` (`/mana-base`) — turn-by-turn land-drop probability table and chart; models cumulative draw count as `handSize + turn` and computes P(≥N lands) via hypergeometric CDF
@@ -28,6 +28,7 @@ Single Blazor WebAssembly project (net10.0) targeting Azure Static Web Apps. No 
 - `LootingEffect` — a per-turn draw/discard effect (`Turn`, `DrawCount`, `DiscardCount`)
 - `SimulationResult` / `MulliganSimulationResult` — records holding Monte Carlo output including Wilson CI bounds
 - `FormatPreset` — record with `Name`, `DeckSize`, `HandSize`, `MaxCopiesPerCard`, `DefaultLandCount`; three built-in presets: 60-card Traditional, 100-card Singleton (99 playable cards), 40-card Limited
+- `AdvisorRow` — internal record used by `HypergeometricCalculator` to hold a single row of the Optimal Instances Advisor results (`Instances`, `Probability`, `MeetsTarget`)
 
 # Claude Code Rules
 
@@ -59,13 +60,7 @@ Single Blazor WebAssembly project (net10.0) targeting Azure Static Web Apps. No 
 
 ### ~~Mana Base Analyzer (`/mana-base`)~~ — COMPLETE
 
-### Optimal Copies Advisor
-
-Inverse hypergeometric: given a target probability, draw window, and deck size, back-calculate the minimum copies needed.
-
-- **Math:** Iterate over copy counts 1..4 (or 1..deck size), compute `HypergeometricAtLeast()` for each, return first that meets threshold. Could also display a curve of probability vs copy count.
-- **UI:** Companion panel on the existing Hypergeometric Calculator page, or a standalone page. Inputs: deck size, draw count, desired probability. Output: recommended copy count + a table showing probability for 1–4 copies.
-- **Models:** No new models needed.
+### ~~Optimal Copies Advisor~~ — COMPLETE
 
 ### ~~Global Format Type Picker~~ — COMPLETE
 

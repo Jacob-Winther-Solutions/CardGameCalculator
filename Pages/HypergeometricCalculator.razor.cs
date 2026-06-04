@@ -90,6 +90,43 @@ public partial class HypergeometricCalculator
         _calculated = true;
     }
 
+    private int _targetProbability = 90;
+    private int _advisorDesiredInHand = 1;
+    private bool _advisorCalculated;
+    private int? _advisorMinInstances;
+    private List<AdvisorRow> _advisorRows = new();
+
+    private void RunAdvisor()
+    {
+        _advisorDesiredInHand = Math.Clamp(_advisorDesiredInHand, 1, _cardsDrawn);
+        double target = _targetProbability / 100.0;
+        _advisorMinInstances = null;
+
+        for (int instances = 1; instances <= _deckSize; instances++)
+        {
+            double prob = ProbabilityCalculator.HypergeometricAtLeast(_deckSize, instances, _cardsDrawn, _advisorDesiredInHand);
+            if (prob >= target)
+            {
+                _advisorMinInstances = instances;
+                break;
+            }
+        }
+
+        int displayMax = _advisorMinInstances.HasValue
+            ? Math.Min(_advisorMinInstances.Value + 2, _deckSize)
+            : Math.Min(_deckSize, 20);
+
+        _advisorRows = Enumerable.Range(1, displayMax)
+            .Select(instances =>
+            {
+                double prob = ProbabilityCalculator.HypergeometricAtLeast(_deckSize, instances, _cardsDrawn, _advisorDesiredInHand);
+                return new AdvisorRow(instances, prob, prob >= target);
+            })
+            .ToList();
+
+        _advisorCalculated = true;
+    }
+
     private void ResetToFormat()
     {
         var format = FormatService.Current;
@@ -98,7 +135,10 @@ public partial class HypergeometricCalculator
         _copiesInDeck = Math.Min(4, format.MaxCopiesPerCard);
         _desiredCopies = 1;
         _calculated = false;
+        _advisorCalculated = false;
     }
 
     private static string CopiesLabel(int n) => n == 1 ? "copy" : "copies";
 }
+
+internal record AdvisorRow(int Instances, double Probability, bool MeetsTarget);

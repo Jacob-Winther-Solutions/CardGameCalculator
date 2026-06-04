@@ -66,6 +66,77 @@
                 </MudCardContent>
             </MudCard>
         }
+        <MudCard Elevation="2" Class="mt-4">
+            <MudCardHeader>
+                <CardHeaderContent>
+                    <MudText Typo="Typo.h6">Optimal Instances Advisor</MudText>
+                </CardHeaderContent>
+            </MudCardHeader>
+            <MudCardContent>
+                <MudNumericField @bind-Value="_targetProbability" Label="Target probability (%)"
+                    Variant="Variant.Outlined" Min="1" Max="99" Class="mb-4"
+                    HelperText="Minimum chance of drawing the desired instances" />
+                <MudNumericField @bind-Value="_advisorDesiredInHand" Label="Desired in hand"
+                    Variant="Variant.Outlined" Min="1" Max="@_cardsDrawn"
+                    HelperText="Instances you want to see in your opening hand" />
+            </MudCardContent>
+            <MudCardActions Class="flex-column px-4 pb-4 pt-0">
+                <MudButton Variant="Variant.Filled" Color="Color.Secondary" OnClick="RunAdvisor"
+                    FullWidth="true" StartIcon="@Icons.Material.Filled.Search">
+                    Find Optimal Instances
+                </MudButton>
+            </MudCardActions>
+        </MudCard>
+
+        @if (_advisorCalculated)
+        {
+            <MudCard Elevation="2" Class="mt-4">
+                <MudCardHeader>
+                    <CardHeaderContent>
+                        <MudText Typo="Typo.h6">Advisor Results</MudText>
+                        @if (_advisorMinInstances.HasValue)
+                        {
+                            <MudText Typo="Typo.body2" Color="Color.Secondary">
+                                Minimum @_advisorMinInstances instance@(_advisorMinInstances == 1 ? "" : "s") for &ge;@_targetProbability% drawing @_cardsDrawn cards
+                            </MudText>
+                        }
+                        else
+                        {
+                            <MudText Typo="Typo.body2" Color="Color.Error">
+                                Target not achievable within the deck.
+                            </MudText>
+                        }
+                    </CardHeaderContent>
+                </MudCardHeader>
+                <MudCardContent Class="pa-0">
+                    <MudTable Items="_advisorRows" Dense="true" Hover="true">
+                        <HeaderContent>
+                            <MudTh>Instances in deck</MudTh>
+                            <MudTh>Probability</MudTh>
+                            <MudTh></MudTh>
+                        </HeaderContent>
+                        <RowTemplate>
+                            <MudTd>@context.Instances</MudTd>
+                            <MudTd>
+                                <MudText Color="@(context.MeetsTarget ? Color.Success : Color.Inherit)">
+                                    @context.Probability.ToString("P2")
+                                </MudText>
+                            </MudTd>
+                            <MudTd>
+                                @if (context.Instances == _advisorMinInstances)
+                                {
+                                    <MudChip T="string" Color="Color.Success" Size="Size.Small">Recommended</MudChip>
+                                }
+                                else if (context.MeetsTarget)
+                                {
+                                    <MudIcon Icon="@Icons.Material.Filled.Check" Color="Color.Success" Size="Size.Small" />
+                                }
+                            </MudTd>
+                        </RowTemplate>
+                    </MudTable>
+                </MudCardContent>
+            </MudCard>
+        }
     </MudItem>
 
     <MudItem xs="12" md="8">
