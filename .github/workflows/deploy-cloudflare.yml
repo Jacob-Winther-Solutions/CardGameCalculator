@@ -1,4 +1,4 @@
-name: Deploy to Cloudflare Pages
+name: Deploy to Netlify
 
 on:
   push:
@@ -7,9 +7,6 @@ on:
 jobs:
   deploy:
     runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      deployments: write
 
     steps:
       - uses: actions/checkout@v4
@@ -21,10 +18,8 @@ jobs:
       - name: Publish
         run: dotnet publish -c Release -o release
 
-      - name: Deploy
-        uses: cloudflare/wrangler-action@v3
-        with:
-          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          wranglerVersion: '4'
-          command: deploy
+      - name: Deploy to Netlify
+        run: npx netlify-cli deploy --prod --dir=release/wwwroot
+        env:
+          NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
+          NETLIFY_SITE_ID: ${{ secrets.NETLIFY_SITE_ID }}
